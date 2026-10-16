@@ -1,0 +1,106 @@
+/* Keel design tokens. Light is the base; dark is a selected set, not an inversion. */
+:root {
+  color-scheme: light;
+
+  --page: #f9f9f7;
+  --surface: #fcfcfb;
+  --surface-2: #f3f2ee;
+  --surface-sunk: #efeee9;
+  --ink: #0b0b0b;
+  --ink-2: #52514e;
+  --ink-3: #898781;
+  --hairline: #e1e0d9;
+  --baseline: #c3c2b7;
+  --ring: rgba(11, 11, 11, 0.1);
+  --ring-strong: rgba(11, 11, 11, 0.18);
+
+  --accent: #2a78d6;
+  --accent-ink: #1c5cab;
+  --accent-wash: rgba(42, 120, 214, 0.1);
+  --accent-wash-2: rgba(42, 120, 214, 0.05);
+
+  --good: #0ca30c;
+  --good-ink: #006300;
+  --good-wash: rgba(12, 163, 12, 0.1);
+  --warning: #fab219;
+  --warning-ink: #8a5a00;
+  --warning-wash: rgba(250, 178, 25, 0.16);
+  --critical: #d03b3b;
+  --critical-ink: #b42f2f;
+  --critical-wash: rgba(208, 59, 59, 0.07);
+
+  --shadow-1: 0 1px 0 rgba(11, 11, 11, 0.03), 0 1px 2px rgba(11, 11, 11, 0.04);
+  --shadow-2: 0 1px 0 rgba(11, 11, 11, 0.03), 0 8px 24px -8px rgba(11, 11, 11, 0.12);
+  --shadow-3: 0 24px 64px -24px rgba(11, 11, 11, 0.28);
+
+  --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Instrument Serif", ui-serif, Georgia, serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "SFMono-Regular", Menlo, monospace;
+
+  --r-sm: 6px;
+  --r-md: 10px;
+  --r-lg: 14px;
+  --r-xl: 20px;
+
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --container: 1160px;
+  --gutter: clamp(16px, 4vw, 32px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page: #0d0d0d;
+    --surface: #161615;
+    --surface-2: #1d1d1c;
+    --surface-sunk: #121211;
+    --ink: #f0efec;
+    --ink-2: #c3c2b7;
+    --ink-3: #898781;
+    --hairline: #2c2c2a;
+    --baseline: #383835;
+    --ring: rgba(255, 255, 255, 0.08);
+    --ring-strong: rgba(255, 255, 255, 0.16);
+    --accent: #3987e5;
+    --accent-ink: #86b6ef;
+    --accent-wash: rgba(57, 135, 229, 0.14);
+    --accent-wash-2: rgba(57, 135, 229, 0.07);
+    --good-ink: #0ca30c;
+    --good-wash: rgba(12, 163, 12, 0.14);
+    --warning-ink: #fab219;
+    --warning-wash: rgba(250, 178, 25, 0.12);
+    --critical-ink: #e66767;
+    --critical-wash: rgba(208, 59, 59, 0.12);
+    --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.4);
+    --shadow-2: 0 1px 0 rgba(0, 0, 0, 0.4), 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+    --shadow-3: 0 24px 64px -24px rgba(0, 0, 0, 0.8);
+  }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface: #161615;
+  --surface-2: #1d1d1c;
+  --surface-sunk: #121211;
+  --ink: #f0efec;
+  --ink-2: #c3c2b7;
+  --ink-3: #898781;
+  --hairline: #2c2c2a;
+  --baseline: #383835;
+  --ring: rgba(255, 255, 255, 0.08);
+  --ring-strong: rgba(255, 255, 255, 0.16);
+  --accent: #3987e5;
+  --accent-ink: #86b6ef;
+  --accent-wash: rgba(57, 135, 229, 0.14);
+  --accent-wash-2: rgba(57, 135, 229, 0.07);
+  --good-ink: #0ca30c;
+  --good-wash: rgba(12, 163, 12, 0.14);
+  --warning-ink: #fab219;
+  --warning-wash: rgba(250, 178, 25, 0.12);
+  --critical-ink: #e66767;
+  --critical-wash: rgba(208, 59, 59, 0.12);
+  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 1px 0 rgba(0, 0, 0, 0.4), 0 12px 32px -12px rgba(0, 0, 0, 0.6);
+  --shadow-3: 0 24px 64px -24px rgba(0, 0, 0, 0.8);
+}

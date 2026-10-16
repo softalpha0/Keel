@@ -1,0 +1,43 @@
+{
+  "name": "keel",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Revenue-based lending agent on Airwallex: the model reads, the code decides, the API moves the money.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -p web/tsconfig.json && vite build",
+    "preview": "vite preview",
+    "demo": "tsx src/cli.ts",
+    "demo:llm": "tsx src/cli.ts --llm",
+    "typecheck": "tsc --noEmit && tsc -p web/tsconfig.json",
+    "test": "vitest run",
+    "demo:sandbox": "tsx src/cli.ts --airwallex",
+    "sandbox:check": "tsx src/sandbox/check.ts",
+    "sandbox:setup": "tsx src/sandbox/setup.ts"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
+    "@fontsource-variable/inter": "^5.3.0",
+    "@fontsource-variable/jetbrains-mono": "^5.3.0",
+    "@fontsource/instrument-serif": "^5.3.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "react-router-dom": "^7.18.4",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "fast-check": "^4.10.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}

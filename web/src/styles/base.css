@@ -1,0 +1,372 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.55;
+  font-feature-settings: "cv11", "ss01", "ss03";
+  overflow-x: hidden;
+}
+
+h1,
+h2,
+h3,
+h4,
+p {
+  margin: 0;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+::selection {
+  background: var(--accent-wash);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.container {
+  width: 100%;
+  max-width: var(--container);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.86em;
+  letter-spacing: -0.01em;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 550;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.muted {
+  color: var(--ink-3);
+}
+
+.secondary {
+  color: var(--ink-2);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  --btn-bg: var(--surface);
+  --btn-ink: var(--ink);
+  --btn-ring: var(--ring-strong);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--btn-bg);
+  color: var(--btn-ink);
+  box-shadow: inset 0 0 0 1px var(--btn-ring), var(--shadow-1);
+  font-size: 14px;
+  font-weight: 550;
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 160ms var(--ease), background 160ms var(--ease), box-shadow 160ms var(--ease);
+}
+
+.btn:hover {
+  background: var(--surface-2);
+}
+
+.btn:active {
+  transform: translateY(1px);
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-primary {
+  --btn-bg: var(--ink);
+  --btn-ink: var(--page);
+  --btn-ring: transparent;
+}
+
+.btn-primary:hover {
+  background: color-mix(in oklab, var(--ink) 86%, var(--page));
+}
+
+.btn-accent {
+  --btn-bg: var(--accent);
+  --btn-ink: #fff;
+  --btn-ring: transparent;
+}
+
+.btn-accent:hover {
+  background: color-mix(in oklab, var(--accent) 88%, black);
+}
+
+.btn-ghost {
+  --btn-bg: transparent;
+  --btn-ring: transparent;
+  box-shadow: none;
+}
+
+.btn-ghost:hover {
+  background: var(--surface-2);
+}
+
+.btn-sm {
+  height: 32px;
+  padding: 0 12px;
+  font-size: 13px;
+}
+
+.btn-icon {
+  width: 36px;
+  padding: 0;
+}
+
+.btn .arrow {
+  transition: transform 200ms var(--ease);
+}
+
+.btn:hover .arrow {
+  transform: translateX(2px);
+}
+
+/* ---------- Surfaces ---------- */
+
+.card {
+  background: var(--surface);
+  border-radius: var(--r-lg);
+  box-shadow: inset 0 0 0 1px var(--ring), var(--shadow-1);
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px 0;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+
+.card-sub {
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--ink-3);
+}
+
+.divider {
+  height: 1px;
+  background: var(--hairline);
+  border: 0;
+  margin: 0;
+}
+
+/* ---------- Status ---------- */
+
+.tier {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px 0 6px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.tier svg {
+  flex: none;
+}
+
+.tier-healthy {
+  background: var(--good-wash);
+  color: var(--good-ink);
+}
+
+.tier-watch {
+  background: var(--warning-wash);
+  color: var(--warning-ink);
+}
+
+.tier-stressed {
+  background: var(--critical-wash);
+  color: var(--critical-ink);
+}
+
+.tier-new {
+  background: var(--surface-2);
+  color: var(--ink-3);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  color: var(--ink-2);
+  font-size: 12px;
+  font-weight: 550;
+  white-space: nowrap;
+}
+
+.pill-accent {
+  background: var(--accent-wash);
+  color: var(--accent-ink);
+}
+
+.pill-critical {
+  background: var(--critical-wash);
+  color: var(--critical-ink);
+}
+
+.pill-good {
+  background: var(--good-wash);
+  color: var(--good-ink);
+}
+
+/* ---------- Chart chrome (shared) ---------- */
+
+.chart {
+  position: relative;
+  width: 100%;
+}
+
+.chart svg {
+  display: block;
+  overflow: visible;
+}
+
+.chart .grid line {
+  stroke: var(--hairline);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.chart .axis text {
+  fill: var(--ink-3);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.chart .baseline {
+  stroke: var(--baseline);
+  stroke-width: 1;
+  shape-rendering: crispEdges;
+}
+
+.tooltip {
+  position: absolute;
+  z-index: 5;
+  min-width: 168px;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--ring-strong), var(--shadow-2);
+  font-size: 12px;
+  pointer-events: none;
+  transform: translate(-50%, calc(-100% - 12px));
+  transition: left 80ms linear, top 80ms linear;
+}
+
+.tooltip-title {
+  margin-bottom: 6px;
+  color: var(--ink-3);
+  font-weight: 550;
+}
+
+.tooltip-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.7;
+}
+
+.tooltip-row strong {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.tooltip-row span {
+  color: var(--ink-2);
+}
+
+.key-line {
+  display: inline-block;
+  width: 12px;
+  height: 2px;
+  border-radius: 2px;
+  flex: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
