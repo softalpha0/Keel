@@ -34,14 +34,18 @@ npm run demo:llm    # terminal run with Claude writing memos (needs ANTHROPIC_AP
    gives each a USD Global Account, funds the platform wallet, and prints the lines to paste into `.env`.
 5. `npm run demo:sandbox` runs the same ten weeks against the real sandbox: revenue is staged with deposit
    simulations, advances go out with `connected_account_transfers`, repayments come back with `charges`.
+   The run is saved to `web/public/runs/latest.json`; open `/run` in the website to see every transfer and charge
+   with the ids Airwallex returned. Commit that file if you want the live run in your submission.
+   (`npm run demo -- --record` saves a simulated run, to preview the page.)
 
 Recommended for building: connect Airwallex's MCP servers in Claude Code
 (`claude mcp add-json airwallex-docs '{ "type": "http", "url": "https://mcp.sandbox.airwallex.com/docs" }'`, and the
-same for `/developer`). `CLAUDE.md` gives Claude the Kit 7 conventions.
+same for `/developer`).
 
 ## The website
 
 - `/` — landing page. Every number and chart on it comes from running the real engine in the browser, not from mock data.
+- `/run` — the last recorded run, with every advance and repayment and the bank's own ids.
 - `/console` — run the 10 weeks, step a week at a time, approve or reject the hard calls yourself, click any chart marker to inspect the decision, and use the What-if sliders (revenue shock size and timing, reserve floor, borrower decline) to re-run the agent live.
 
 Code lives in `web/src`: `pages/` (Landing, Console), `components/` (hand-built SVG charts, option table, status badges), `lib/sim.ts` (bridges the engine to React), `styles/` (design tokens with light and dark themes).

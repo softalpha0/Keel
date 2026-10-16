@@ -1,16 +1,20 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { RulesAdvisor } from "./agent/advisor.js";
 import { ClaudeAdvisor } from "./agent/claude-advisor.js";
-import { AirwallexBank } from "./bank/airwallex.js";
+import { AirwallexBank, requestId } from "./bank/airwallex.js";
 import { fmt } from "./domain.js";
 import { demoScenario } from "./sim/scenario.js";
 import { borrowerAccountsFromEnv, loadEnv } from "./sandbox/env.js";
 import { runScenario } from "./sim/run.js";
+import { buildRunRecord } from "./sim/record.js";
 
 loadEnv();
 const args = new Set(process.argv.slice(2));
 const useLlm = args.has("--llm");
 const useAirwallex = args.has("--airwallex");
+// --record saves a simulated run for the website too (handy for previewing the Sandbox run page).
+const record = useAirwallex || args.has("--record");
+const startedAt = new Date();
 
 if (useLlm && !process.env.ANTHROPIC_API_KEY) console.warn("--llm set but ANTHROPIC_API_KEY is empty; memos will fall back to rules.\n");
 
@@ -74,4 +78,21 @@ console.log(`\nFloor held every week and ledger reconciled every week: ${ok ? "Y
 mkdirSync("out", { recursive: true });
 writeFileSync("out/decision-log.json", JSON.stringify({ decisions: ledger.decisions, receipts: ledger.receipts, events: ledger.events }, null, 2));
 console.log("Decision log written to out/decision-log.json");
+
+if (record) {
+  const run = buildRunRecord({
+    source: useAirwallex ? "airwallex-sandbox" : "simulated",
+    runId: bank?.runId ?? startedAt.toISOString(),
+    startedAt,
+    fundSize: scenario.fundSize,
+    reserveFloor: policy?.reserveFloor ?? scenario.reserveFloor,
+    borrowers: scenario.borrowers,
+    ledger,
+    reports,
+    requestIdFor: bank ? (key) => requestId(bank.runId, key) : undefined,
+  });
+  mkdirSync("web/public/runs", { recursive: true });
+  writeFileSync("web/public/runs/latest.json", JSON.stringify(run, null, 2));
+  console.log("Run saved to web/public/runs/latest.json. Open /run in the website to see it.");
+}
 process.exitCode = ok ? 0 : 1;

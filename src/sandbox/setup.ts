@@ -20,7 +20,9 @@ async function step<T>(label: string, fn: () => Promise<T>): Promise<T> {
   } catch (err) {
     console.log("FAILED");
     console.error(`\n${err instanceof Error ? err.message : err}\n`);
-    if (err instanceof AirwallexError && (err.status === 401 || err.status === 403)) {
+    if (err instanceof AirwallexError && /cannot onboard business accounts/i.test(err.message)) {
+      console.error("Hint: connected accounts are not enabled on this sandbox yet. Email devhelp@airwallex.com with your sandbox email and Client ID and ask for connected accounts + platform payments.");
+    } else if (err instanceof AirwallexError && (err.status === 401 || err.status === 403)) {
       console.error("Hint: 403 on accounts/create usually means connected accounts or platform payments are not enabled yet. Email devhelp@airwallex.com.");
     } else {
       console.error("Hint: ask Claude Code (with the airwallex-docs MCP) to fix the payload in src/sandbox/payloads.ts using this error.");

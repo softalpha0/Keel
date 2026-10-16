@@ -102,6 +102,10 @@ export class AirwallexBank implements BankAdapter {
     return this.cfg.platformAccountId;
   }
 
+  get runId() {
+    return this.cfg.runId;
+  }
+
   // ---------- HTTP ----------
 
   private async auth(): Promise<string> {
@@ -120,8 +124,9 @@ export class AirwallexBank implements BankAdapter {
     for (let attempt = 0; ; attempt++) {
       const headers: Record<string, string> = { Authorization: `Bearer ${await this.auth()}`, "Content-Type": "application/json" };
       if (init.onBehalfOf && init.onBehalfOf !== this.cfg.platformAccountId) headers["x-on-behalf-of"] = init.onBehalfOf;
+      const method = init.method ?? (init.body !== undefined ? "POST" : "GET");
       const res = await fetch(this.cfg.baseUrl + path, {
-        method: init.method ?? (init.body !== undefined ? "POST" : "GET"),
+        method,
         headers,
         body: init.body !== undefined ? JSON.stringify(init.body) : undefined,
       });
@@ -138,7 +143,7 @@ export class AirwallexBank implements BankAdapter {
         } catch {
           /* non-JSON error body */
         }
-        throw new AirwallexError(res.status, code, `${init.method ?? "GET"} ${path} -> ${res.status} ${text}`);
+        throw new AirwallexError(res.status, code, `${method} ${path} -> ${res.status} ${text}`);
       }
       return (text ? JSON.parse(text) : {}) as T;
     }

@@ -806,3 +806,93 @@
     transform: translateY(8px) scale(0.985);
   }
 }
+
+/* ---------- Sandbox run page ---------- */
+
+.run-main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px var(--gutter) 72px;
+}
+
+.run {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+}
+
+.run-head {
+  display: grid;
+  gap: 12px;
+  padding: 8px 0 4px;
+}
+
+.run-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.run-meta {
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.run-empty {
+  display: grid;
+  gap: 12px;
+  max-width: 640px;
+  margin: 48px auto;
+  padding: 28px;
+}
+
+.run-steps {
+  display: grid;
+  gap: 8px;
+  margin: 4px 0 0;
+  padding-left: 20px;
+  color: var(--ink-2);
+}
+
+.run-steps code {
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--surface-2);
+}
+
+.table .mono {
+  font-size: 12px;
+}
+
+.table td .mono {
+  margin-top: 2px;
+}
+
+.table td .pill + .pill {
+  margin-left: 6px;
+}
+
+.run-decisions {
+  margin: 0;
+  padding: 4px 0 8px;
+  list-style: none;
+}
+
+.run-decisions li {
+  display: grid;
+  gap: 6px;
+  padding: 14px 20px;
+  border-top: 1px solid var(--hairline);
+  font-size: 13.5px;
+}
+
+.run-decisions li:first-child {
+  border-top: 0;
+}
+
+.run-decision-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+}

@@ -44,6 +44,9 @@ export function Console() {
           </div>
           <div className="topbar-actions">
             <ThemeToggle />
+            <Link to="/run" className="btn btn-ghost btn-sm">
+              Sandbox run
+            </Link>
             <Link to="/" className="btn btn-ghost btn-sm">
               Overview
             </Link>
