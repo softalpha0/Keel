@@ -24,6 +24,15 @@ export interface RunRecord {
   events: Ledger["events"];
   floorHeldEveryWeek: boolean;
   reconciledEveryWeek: boolean;
+  /** Airwallex BALANCE_REPORT requested at the end of a sandbox run: the bank's own portfolio snapshot. */
+  balanceReport?: BalanceReportRef;
+}
+
+export interface BalanceReportRef {
+  requestedAt: string;
+  id?: string;
+  status?: string;
+  error?: string;
 }
 
 export function buildRunRecord(args: {
@@ -36,6 +45,7 @@ export function buildRunRecord(args: {
   ledger: Ledger;
   reports: WeekReport[];
   requestIdFor?: (idempotencyKey: string) => string;
+  balanceReport?: BalanceReportRef;
 }): RunRecord {
   const { ledger, reports } = args;
   return {
@@ -55,5 +65,6 @@ export function buildRunRecord(args: {
     events: ledger.events,
     floorHeldEveryWeek: reports.every((r) => r.floorHeld),
     reconciledEveryWeek: reports.every((r) => r.reconciled),
+    ...(args.balanceReport && { balanceReport: args.balanceReport }),
   };
 }

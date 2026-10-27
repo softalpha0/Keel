@@ -193,8 +193,11 @@ export class AirwallexBank implements BankAdapter {
   }
 
   /** Portfolio snapshot for reconciliation (Kit 7). Download the file within 60 seconds of the link appearing. */
-  async createBalanceReport(): Promise<unknown> {
-    return this.call(API.report, { body: { type: "BALANCE_REPORT", file_format: "CSV" } });
+  async createBalanceReport(): Promise<{ id?: string; status?: string }> {
+    const r = await this.call<{ id?: string; report_id?: string; status?: string }>(API.report, {
+      body: { type: "BALANCE_REPORT", file_format: "CSV" },
+    });
+    return { id: r.id ?? r.report_id, status: r.status };
   }
 
   // ---------- helpers ----------

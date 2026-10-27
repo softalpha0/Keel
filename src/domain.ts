@@ -83,3 +83,6 @@ export interface AdvanceOption {
   score: Cents;
   rationale: string[];
 }
+
+/** "Kopi Roasters" -> "Kopi Roasters'", "Nimbus" -> "Nimbus'", "Ledgerly SaaS" -> "Ledgerly SaaS's". */
+export const possessive = (name: string) => (/s$/.test(name) ? `${name}'` : `${name}'s`);

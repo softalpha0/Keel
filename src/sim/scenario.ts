@@ -22,6 +22,16 @@ export interface Scenario {
   pipeline: Commitment[];
   /** Weeks where the bank "loses" a collection response, to show idempotent retries. */
   lostResponseWeeks: number[];
+  /** Customer payments that settle after the week they were earned (the Kit 7 underpayment). */
+  latePayments: LatePayment[];
+}
+
+export interface LatePayment {
+  borrowerId: string;
+  week: number;
+  /** Share of that week's sales that settles late (0-1). */
+  share: number;
+  arrivesWeek: number;
 }
 
 /** Knobs the console's what-if panel turns. Defaults reproduce the canonical demo. */
@@ -80,5 +90,7 @@ export function demoScenario(overrides: Partial<ScenarioParams> = {}): Scenario 
     ],
     pipeline: [{ id: "cmt_pipeline_kopi", borrowerId: "kopi", amount: usd(8_000), week: 6, reason: "approved top-up" }],
     lostResponseWeeks: [6],
+    // Ledgerly's enterprise customers pay 60% of week 6 invoices a week late.
+    latePayments: [{ borrowerId: "ledgerly", week: 6, share: 0.6, arrivesWeek: 7 }],
   };
 }

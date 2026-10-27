@@ -6,18 +6,21 @@ import { TierBadge } from "../components/Status";
 import { ThemeToggle, Wordmark } from "../components/Brand";
 import { borrowerSector, money, moneyCompact, optionLabel, pct } from "../lib/format";
 import { useReveal } from "../lib/hooks";
+import { runDate, useLatestRun, type LatestRun } from "../lib/run";
 import { useDemoRun, type RunResult } from "../lib/sim";
 import { storyBeats } from "../lib/story";
 
 export function Landing() {
   const run = useDemoRun();
+  const live = useLatestRun();
   return (
     <div className="landing">
       <Nav />
       <main>
-        <Hero run={run} />
+        <Hero run={run} live={live} />
         <Pipeline run={run} />
         <HardCase run={run} />
+        <LateMoney run={run} />
         <Portfolio run={run} />
         <Guarantees run={run} />
         <Closing />
@@ -35,7 +38,9 @@ function Nav() {
         <nav className="nav-links" aria-label="Sections">
           <a href="#how">How it decides</a>
           <a href="#hard-case">The hard case</a>
+          <a href="#late-money">Late money</a>
           <a href="#guarantees">Guarantees</a>
+          <Link to="/run">Live run</Link>
         </nav>
         <div className="nav-actions">
           <ThemeToggle />
@@ -48,7 +53,7 @@ function Nav() {
   );
 }
 
-function Hero({ run }: { run: RunResult | null }) {
+function Hero({ run, live }: { run: RunResult | null; live: LatestRun }) {
   const beats = run ? storyBeats(run.decisions, run.events) : [];
   const deployed = run?.advances.reduce((s, a) => s + a.principal, 0) ?? 0;
   const minHeadroom = run ? Math.min(...run.snaps.map((s) => s.cash - s.floor)) : 0;
@@ -57,6 +62,7 @@ function Hero({ run }: { run: RunResult | null }) {
   return (
     <section className="hero">
       <div className="container">
+        <div className="hero-top">
         <div className="hero-copy">
           <p className="eyebrow">
             <span className="dot" /> Agentic lending · Airwallex sandbox
@@ -78,6 +84,8 @@ function Hero({ run }: { run: RunResult | null }) {
               How it decides
             </a>
           </div>
+        </div>
+        <LiveProof live={live} />
         </div>
 
         <figure className="hero-figure card">
@@ -140,6 +148,78 @@ function Hero({ run }: { run: RunResult | null }) {
         </figure>
       </div>
     </section>
+  );
+}
+
+const RAILS = [
+  { api: "connected_accounts", what: "each borrower is an Airwallex connected account" },
+  { api: "connected_account_transfers", what: "advances: platform → borrower" },
+  { api: "charges", what: "repayments: borrower → platform" },
+  { api: "BALANCE_REPORT", what: "the bank's own portfolio snapshot" },
+];
+
+/** Proof that the same engine ran on real sandbox rails, read from the recorded run. */
+function LiveProof({ live }: { live: LatestRun }) {
+  const run = live.state === "ready" && live.run.source === "airwallex-sandbox" ? live.run : null;
+  const settled = run?.movements.filter((m) => m.status === "settled") ?? [];
+  const out = settled.filter((m) => m.kind === "disburse");
+  const back = settled.filter((m) => m.kind === "collect");
+  const first = out[0];
+  return (
+    <aside className="proof card" aria-label="Airwallex sandbox run">
+      <div className="proof-head">
+        <span className={`pill ${run ? "pill-good" : ""}`}>
+          <span className="proof-dot" aria-hidden="true" /> {run ? "Verified on the Airwallex sandbox" : "Built on Airwallex sandbox rails"}
+        </span>
+        {run && <span className="muted proof-date">{runDate(run.startedAt)}</span>}
+      </div>
+      {run ? (
+        <>
+          <dl className="proof-stats">
+            <div>
+              <dt>Advances out</dt>
+              <dd className="num">{out.length}</dd>
+            </div>
+            <div>
+              <dt>Repayments in</dt>
+              <dd className="num">{back.length}</dd>
+            </div>
+            <div>
+              <dt>Floor breaches</dt>
+              <dd className="num">{run.floorHeldEveryWeek ? 0 : "!"}</dd>
+            </div>
+          </dl>
+          {first && (
+            <div className="proof-receipt">
+              <div className="artifact-row">
+                <span className="muted">transfer</span> <span className="mono">{first.transferId}</span>
+              </div>
+              <div className="artifact-row">
+                <span className="muted">request_id</span> <span className="mono">{first.requestId?.slice(0, 18)}…</span>
+              </div>
+              <div className="artifact-row">
+                <span className="muted">amount</span> {money(first.amount)} · <span className="pill pill-good">settled</span>
+              </div>
+            </div>
+          )}
+          <p className="proof-note">
+            {run.reconciledEveryWeek ? "Ledger matched the bank balance every week." : "Ledger checked against the bank every week."} Every id is the one Airwallex returned.
+          </p>
+        </>
+      ) : (
+        <ul className="proof-rails">
+          {RAILS.map((r) => (
+            <li key={r.api}>
+              <span className="mono">{r.api}</span>
+              <span className="muted">{r.what}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      <Link to="/run" className="btn btn-sm proof-link">
+        {run ? "See every transfer and charge" : "How the sandbox run works"} <span className="arrow">→</span>
+      </Link>
+    </aside>
   );
 }
 
@@ -265,6 +345,85 @@ function HardCase({ run }: { run: RunResult | null }) {
   );
 }
 
+function LateMoney({ run }: { run: RunResult | null }) {
+  const lateEvent = run?.events.find((e) => e.text.includes("has not settled"));
+  const caught = run?.events.find((e) => e.text.includes("catch-up"));
+  const promise = run?.decisions.find((d) => d.type === "commitment");
+  const amounts = lateEvent?.text.match(/\$[\d,]+/g) ?? [];
+  const promised = (promise?.inputs.commitment as { amount: number } | undefined)?.amount ?? 0;
+  return (
+    <section className="section" id="late-money">
+      <div className="container">
+        <Reveal className="section-head">
+          <p className="eyebrow">Underpayments and promises</p>
+          <h2 className="h2">Late money isn't bad credit. Old promises aren't blank cheques.</h2>
+          <p className="section-lede">
+            Real portfolios don't pay on schedule. Keel tells a customer paying late apart from a business in trouble, and re-checks every promised advance against
+            today's cash and today's borrower before the money moves.
+          </p>
+        </Reveal>
+        <div className="late-grid">
+          <Reveal className="card late-card">
+            <div className="late-top">
+              <span className="pill pill-warn">Week {lateEvent?.week ?? 6} · paid late</span>
+              <TierBadge tier="healthy" />
+            </div>
+            <h3 className="late-title">Ledgerly's customers pay a week late</h3>
+            <ol className="timeline">
+              <li>
+                <span className="tl-week num">W{lateEvent?.week ?? 6}</span>
+                <div>
+                  <strong>{amounts[1] ?? "$8,664"} sold, {amounts[0] ?? "$5,199"} not settled.</strong>
+                  <p>Keel takes its share of what arrived and books {amounts[2] ?? "$520"} as a receivable. Sales are on trend, so the tier stays healthy.</p>
+                </div>
+              </li>
+              <li>
+                <span className="tl-week num">W{caught?.week ?? 7}</span>
+                <div>
+                  <strong>The late payments land.</strong>
+                  <p>Keel collects the catch-up the same week and clears the receivable. Nothing written off, nothing frozen.</p>
+                </div>
+              </li>
+            </ol>
+          </Reveal>
+          <Reveal className="card late-card">
+            <div className="late-top">
+              <span className="pill pill-accent">Week {promise?.week ?? 6} · promise re-checked</span>
+              <TierBadge tier="watch" />
+            </div>
+            <h3 className="late-title">Kopi's top-up comes due after Kopi softens</h3>
+            <ol className="timeline">
+              <li>
+                <span className="tl-week num">W0</span>
+                <div>
+                  <strong>An $8,000 top-up is promised.</strong>
+                  <p>Kopi is healthy. The advance is booked as a commitment for week 6.</p>
+                </div>
+              </li>
+              <li>
+                <span className="tl-week num">W5</span>
+                <div>
+                  <strong>Part of it funds Nimbus instead.</strong>
+                  <p>Kopi's sales are slipping, so its unpaid promise is the first capital Keel reallocates.</p>
+                </div>
+              </li>
+              <li>
+                <span className="tl-week num">W{promise?.week ?? 6}</span>
+                <div>
+                  <strong>
+                    The remaining {money(promised)} is {promise?.chosen === "decline" ? "withdrawn" : `re-sized: ${optionLabel[promise?.chosen ?? "partial"]?.toLowerCase()}`}.
+                  </strong>
+                  <p>Before paying, Keel re-runs the decision. Kopi is on watch and already at its capacity, so a stale yes becomes a fresh no.</p>
+                </div>
+              </li>
+            </ol>
+          </Reveal>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Portfolio({ run }: { run: RunResult | null }) {
   const end = run?.snaps.at(-1);
   return (
@@ -359,6 +518,13 @@ function Footer() {
     <footer className="footer">
       <div className="container footer-inner">
         <Wordmark />
+        <nav className="footer-links" aria-label="Footer">
+          <Link to="/console">Console</Link>
+          <Link to="/run">Sandbox run</Link>
+          <a href="https://github.com/softalpha0/Keel" target="_blank" rel="noreferrer">
+            Source
+          </a>
+        </nav>
         <p className="muted">
           Built for the Airwallex Agentic Banking Hackathon 2026. A sandbox simulation, not a lending offer. Not affiliated with or endorsed by Airwallex.
         </p>

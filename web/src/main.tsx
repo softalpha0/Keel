@@ -12,6 +12,7 @@ import "./styles/console.css";
 import { Landing } from "./pages/Landing";
 import { Console } from "./pages/Console";
 import { RunPage } from "./pages/RunPage";
+import { NotFound } from "./pages/NotFound";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -27,7 +28,7 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/" element={<Landing />} />
         <Route path="/console" element={<Console />} />
         <Route path="/run" element={<RunPage />} />
-        <Route path="*" element={<Landing />} />
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>,

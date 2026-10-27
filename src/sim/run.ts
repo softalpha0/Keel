@@ -1,6 +1,6 @@
 import type { BankAdapter } from "../bank/types.js";
 import { MockBank } from "../bank/mock.js";
-import { LendingAgent, type Approver, type WeekReport } from "../agent/lending-agent.js";
+import { LendingAgent, type Approver, type Settlement, type WeekReport } from "../agent/lending-agent.js";
 import { RulesAdvisor, type Advisor } from "../agent/advisor.js";
 import { Ledger } from "../ledger.js";
 import { defaultPolicy, type PolicyConfig } from "../policy/engine.js";
@@ -63,13 +63,21 @@ export async function createSimulation(s: Scenario, opts: RunOptions = {}): Prom
       if (week >= s.weeks) return null;
       const w = week + 1;
       const revenue = new Map<string, number>();
+      const received = new Map<string, number>();
+      const late: Settlement["late"] = [];
       for (const b of s.borrowers) {
         const amount = s.revenue(b.id, w);
         revenue.set(b.id, amount);
+        const delayed = s.latePayments.filter((l) => l.borrowerId === b.id && l.week === w).reduce((x, l) => x + Math.round(amount * l.share), 0);
+        received.set(b.id, amount - delayed);
+        for (const l of s.latePayments.filter((l) => l.borrowerId === b.id && l.arrivesWeek === w)) {
+          late.push({ borrowerId: b.id, forWeek: l.week, amount: Math.round(s.revenue(b.id, l.week) * l.share) });
+        }
         // Customer payments land in the borrower's account before we collect from it.
-        await bank.stageRevenue(b.accountId, amount, `rev:${b.id}:w${w}`);
+        const landed = amount - delayed + late.filter((l) => l.borrowerId === b.id).reduce((x, l) => x + l.amount, 0);
+        await bank.stageRevenue(b.accountId, landed, `rev:${b.id}:w${w}`);
       }
-      const r = await agent.runWeek(w, revenue, s.requests.filter((q) => q.week === w));
+      const r = await agent.runWeek(w, revenue, s.requests.filter((q) => q.week === w), { received, late });
       week = w;
       opts.onWeek?.(r, agent);
       return r;

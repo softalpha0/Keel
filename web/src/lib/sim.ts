@@ -25,6 +25,8 @@ export interface WeekSnap {
   outstanding: number;
   feesBooked: number;
   collectedToDate: number;
+  /** Repayments due but not yet collected (late customer payments, short wallets). */
+  receivableOpen: number;
   reconciled: boolean;
   floorHeld: boolean;
   borrowers: BorrowerSnap[];
@@ -41,6 +43,7 @@ export function snapshot(agent: LendingAgent, r: WeekReport): WeekSnap {
     outstanding: l.advances.reduce((s, a) => s + a.outstanding, 0),
     feesBooked: l.advances.reduce((s, a) => s + a.fee, 0),
     collectedToDate: l.receipts.filter((x) => x.kind === "collect" && x.status === "settled").reduce((s, x) => s + x.amount, 0),
+    receivableOpen: l.openReceivables().reduce((s, x) => s + x.amount - x.collected, 0),
     reconciled: r.reconciled,
     floorHeld: r.floorHeld,
     borrowers: [...agent.borrowers.values()].map((b) => {
@@ -145,6 +148,7 @@ export function useLiveSimulation(params: ScenarioParams, autoApprove: boolean) 
       committed: created.ledger.commitments.reduce((a, c) => a + c.amount, 0),
       outstanding: 0,
       feesBooked: 0,
+      receivableOpen: 0,
       collectedToDate: 0,
       reconciled: true,
       floorHeld: true,

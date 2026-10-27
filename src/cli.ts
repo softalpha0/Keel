@@ -6,7 +6,7 @@ import { fmt } from "./domain.js";
 import { demoScenario } from "./sim/scenario.js";
 import { borrowerAccountsFromEnv, loadEnv } from "./sandbox/env.js";
 import { runScenario } from "./sim/run.js";
-import { buildRunRecord } from "./sim/record.js";
+import { buildRunRecord, type BalanceReportRef } from "./sim/record.js";
 
 loadEnv();
 const args = new Set(process.argv.slice(2));
@@ -79,6 +79,19 @@ mkdirSync("out", { recursive: true });
 writeFileSync("out/decision-log.json", JSON.stringify({ decisions: ledger.decisions, receipts: ledger.receipts, events: ledger.events }, null, 2));
 console.log("Decision log written to out/decision-log.json");
 
+let balanceReport: BalanceReportRef | undefined;
+if (bank) {
+  // Ask Airwallex for its own snapshot of every wallet, so the book can be checked against the bank's report too.
+  balanceReport = { requestedAt: new Date().toISOString() };
+  try {
+    Object.assign(balanceReport, await bank.createBalanceReport());
+    console.log(`Airwallex BALANCE_REPORT requested: ${balanceReport.id ?? "(no id returned)"} ${balanceReport.status ?? ""}`);
+  } catch (err) {
+    balanceReport.error = err instanceof Error ? err.message.slice(0, 300) : String(err);
+    console.warn(`BALANCE_REPORT request failed (the run itself is unaffected): ${balanceReport.error}`);
+  }
+}
+
 if (record) {
   const run = buildRunRecord({
     source: useAirwallex ? "airwallex-sandbox" : "simulated",
@@ -90,9 +103,17 @@ if (record) {
     ledger,
     reports,
     requestIdFor: bank ? (key) => requestId(bank.runId, key) : undefined,
+    balanceReport,
   });
   mkdirSync("web/public/runs", { recursive: true });
   writeFileSync("web/public/runs/latest.json", JSON.stringify(run, null, 2));
+  if (useAirwallex) {
+    // Keep every live run as evidence, named by date, alongside the one the website shows.
+    mkdirSync("evidence", { recursive: true });
+    const file = `evidence/airwallex-sandbox-${startedAt.toISOString().slice(0, 19).replace(/:/g, "")}.json`;
+    writeFileSync(file, JSON.stringify(run, null, 2));
+    console.log(`Evidence copy written to ${file}`);
+  }
   console.log("Run saved to web/public/runs/latest.json. Open /run in the website to see it.");
 }
 process.exitCode = ok ? 0 : 1;

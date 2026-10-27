@@ -288,6 +288,11 @@ button {
   color: var(--good-ink);
 }
 
+.pill-warn {
+  background: var(--warning-wash);
+  color: var(--warning-ink);
+}
+
 /* ---------- Chart chrome (shared) ---------- */
 
 .chart {

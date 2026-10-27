@@ -1,22 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import type { RunRecord } from "../../../src/sim/record";
 import { ThemeToggle, Wordmark } from "../components/Brand";
 import { CashChart } from "../components/CashChart";
 import { Check, Cross } from "../components/Status";
 import { money, optionLabel } from "../lib/format";
+import { useLatestRun } from "../lib/run";
 import type { WeekSnap } from "../lib/sim";
 
-type Load = { state: "loading" } | { state: "missing" } | { state: "ready"; run: RunRecord };
-
 export function RunPage() {
-  const [load, setLoad] = useState<Load>({ state: "loading" });
-  useEffect(() => {
-    fetch("/runs/latest.json", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
-      .then((run: RunRecord) => setLoad({ state: "ready", run }))
-      .catch(() => setLoad({ state: "missing" }));
-  }, []);
+  const load = useLatestRun();
 
   return (
     <div className="console">
@@ -80,6 +73,7 @@ function Run({ run }: { run: RunRecord }) {
         outstanding: 0,
         feesBooked: 0,
         collectedToDate: 0,
+        receivableOpen: 0,
         reconciled: w.reconciled,
         floorHeld: w.floorHeld,
         borrowers: [],
@@ -91,7 +85,10 @@ function Run({ run }: { run: RunRecord }) {
   const out = run.movements.filter((m) => m.kind === "disburse" && m.status === "settled");
   const back = run.movements.filter((m) => m.kind === "collect" && m.status === "settled");
   const retried = run.movements.filter((m) => m.attempts > 1).length;
-  const owed = run.receivables.reduce((s, r) => s + r.amount, 0);
+  // Older run files predate receivable ids and catch-up; treat their rows as still open.
+  const receivables = run.receivables.map((r) => ({ ...r, collected: r.collected ?? 0, reason: r.reason ?? "wallet-short" }));
+  const owed = receivables.reduce((s, r) => s + r.amount - r.collected, 0);
+  const caughtUp = receivables.reduce((s, r) => s + r.collected, 0);
   const sum = (xs: { amount: number }[]) => xs.reduce((s, x) => s + x.amount, 0);
 
   return (
@@ -111,6 +108,19 @@ function Run({ run }: { run: RunRecord }) {
           Run <span className="mono">{run.runId}</span> · {new Date(run.startedAt).toLocaleString()} · {money(run.fund.size)} fund · floor{" "}
           {money(run.fund.reserveFloor - offset)} inside the fund
         </p>
+        {run.balanceReport && (
+          <p className="muted run-meta">
+            Airwallex <span className="mono">BALANCE_REPORT</span>{" "}
+            {run.balanceReport.error ? (
+              <>requested; the API returned an error, kept in the run file</>
+            ) : (
+              <>
+                requested at the end of the run{run.balanceReport.id && <> · <span className="mono">{run.balanceReport.id}</span></>}
+                {run.balanceReport.status && <> · {run.balanceReport.status.toLowerCase()}</>}
+              </>
+            )}
+          </p>
+        )}
       </section>
 
       <section className="kpis" aria-label="Run totals">
@@ -125,9 +135,11 @@ function Run({ run }: { run: RunRecord }) {
           <div className="kpi-note">{back.length} charges</div>
         </div>
         <div className="kpi card">
-          <div className="kpi-label">Receivables</div>
+          <div className="kpi-label">Still owed</div>
           <div className="kpi-value">{money(owed)}</div>
-          <div className="kpi-note">{run.receivables.length ? "short wallets, still owed" : "every repayment covered"}</div>
+          <div className="kpi-note">
+            {!receivables.length ? "every repayment covered" : caughtUp ? `${money(caughtUp)} late money caught up` : `${receivables.length} receivable(s) open`}
+          </div>
         </div>
         <div className="kpi card">
           <div className="kpi-label">Retries recovered</div>
@@ -175,7 +187,7 @@ function Run({ run }: { run: RunRecord }) {
               {run.movements.map((m) => (
                 <tr key={m.idempotencyKey}>
                   <td className="num">W{m.week}</td>
-                  <td>{m.kind === "disburse" ? "Advance → borrower" : "Repayment → platform"}</td>
+                  <td>{m.kind === "disburse" ? "Advance → borrower" : m.idempotencyKey.startsWith("catchup:") ? "Catch-up → platform" : "Repayment → platform"}</td>
                   <td>
                     {names[m.borrowerId] ?? m.borrowerId}
                     <div className="mono muted">{accounts[m.borrowerId]}</div>
@@ -194,6 +206,45 @@ function Run({ run }: { run: RunRecord }) {
         </div>
       </section>
 
+      {receivables.length > 0 && (
+        <section className="card panel">
+          <div className="card-header">
+            <div>
+              <h2 className="card-title">Receivables</h2>
+              <p className="card-sub">Repayments that were due but not collectable yet, and when Keel caught up on them.</p>
+            </div>
+          </div>
+          <div className="panel-body table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Week</th>
+                  <th>Borrower</th>
+                  <th>Why</th>
+                  <th className="r">Owed</th>
+                  <th className="r">Collected</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {receivables.map((r) => (
+                  <tr key={r.id ?? `${r.week}-${r.advanceId}`}>
+                    <td className="num">W{r.week}</td>
+                    <td>{names[r.borrowerId] ?? r.borrowerId}</td>
+                    <td>{r.reason === "late-payment" ? "Customer payments settled late" : "Wallet could not cover the charge"}</td>
+                    <td className="r num">{money(r.amount)}</td>
+                    <td className="r num">{money(r.collected)}</td>
+                    <td>
+                      {r.settledWeek ? <span className="pill pill-good">Cleared W{r.settledWeek}</span> : <span className="pill pill-warn">Open</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
+
       <section className="card panel">
         <div className="card-header">
           <div>
@@ -208,7 +259,7 @@ function Run({ run }: { run: RunRecord }) {
                 <span className="muted num">W{d.week}</span>
                 <strong>{names[d.borrowerId] ?? d.borrowerId}</strong>
                 <span className={`pill ${d.type === "health-review" ? "pill-critical" : "pill-accent"}`}>
-                  {d.type === "health-review" ? "Health review" : optionLabel[d.chosen ?? "decline"]}
+                  {d.type === "health-review" ? "Health review" : d.type === "commitment" && d.chosen === "decline" ? "Promise withdrawn" : optionLabel[d.chosen ?? "decline"]}
                 </span>
                 {d.approval?.required && <span className="pill">{d.approval.approved ? `approved by ${d.approval.by}` : `rejected by ${d.approval.by}`}</span>}
                 <span className="muted">decided by {d.decidedBy === "claude" ? "Claude" : "policy rules"}</span>

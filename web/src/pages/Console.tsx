@@ -104,7 +104,11 @@ export function Console() {
               note={latest?.floorHeld === false ? "Below floor" : `Floor ${moneyCompact(latest?.floor ?? 0)}`}
               tone={latest && latest.cash - latest.floor < latest.floor * 0.1 ? "tight" : undefined}
             />
-            <Kpi label="Book outstanding" value={money(latest?.outstanding ?? 0)} note={`${money(latest?.committed ?? 0)} committed`} />
+            <Kpi
+              label="Book outstanding"
+              value={money(latest?.outstanding ?? 0)}
+              note={`${money(latest?.committed ?? 0)} committed${latest?.receivableOpen ? ` · ${money(latest.receivableOpen)} paid late` : ""}`}
+            />
             <Kpi
               label="Collected to date"
               value={money(latest?.collectedToDate ?? 0)}
@@ -301,9 +305,11 @@ function DecisionPanel({
         ) : (
           <div className="decision-detail">
             <div className="decision-meta">
-              <span className="pill pill-accent">{optionLabel[decision.chosen ?? "decline"]}</span>
+              <span className="pill pill-accent">{decision.type === "commitment" && decision.chosen === "decline" ? "Withdrawn" : optionLabel[decision.chosen ?? "decline"]}</span>
+              {decision.type === "commitment" && <span className="pill">Promise re-checked</span>}
               <span className="muted">
-                Week {decision.week} · {NAMES[decision.borrowerId]} asked for {money((decision.inputs.request as { amount: number }).amount)} · decided by{" "}
+                Week {decision.week} · {NAMES[decision.borrowerId]}{" "}
+                {decision.type === "commitment" ? "pending advance of" : "asked for"} {money((decision.inputs.request as { amount: number }).amount)} · decided by{" "}
                 {decision.decidedBy === "claude" ? "Claude" : "policy rules"}
               </span>
               {decision.approval?.required && (

@@ -28,4 +28,20 @@ describe("demo scenario end to end", () => {
     const third = ledger.decisions.find((d) => d.borrowerId === "nimbus" && d.week === 5)!;
     expect(third.chosen).not.toBe("full");
   });
+
+  it("treats Ledgerly's late customer payments as a receivable, not distress, and clears it a week later", async () => {
+    const { ledger } = await runScenario(demoScenario());
+    const rc = ledger.receivables.find((r) => r.borrowerId === "ledgerly" && r.reason === "late-payment")!;
+    expect(rc.week).toBe(6);
+    expect(rc.settledWeek).toBe(7);
+    expect(ledger.signals.get("ledgerly")?.tier).toBe("healthy");
+  });
+
+  it("re-decides Kopi's pending advance once Kopi's capacity is used up", async () => {
+    const { ledger } = await runScenario(demoScenario());
+    const d = ledger.decisions.find((x) => x.type === "commitment" && x.borrowerId === "kopi")!;
+    expect(d.week).toBe(6);
+    expect(d.chosen).toBe("decline");
+    expect(ledger.commitments).toEqual([]);
+  });
 });

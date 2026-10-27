@@ -33,6 +33,19 @@ export function storyBeats(decisions: DecisionRecord[], events: Ledger["events"]
         detail = `${borrowerName(d)}: ${optionLabel[d.chosen!]} ${chosen ? money(chosen.amount) : ""}.`;
       }
       beats.push({ week: d.week, kind: "decision", title: `${borrowerName(d)} · ${optionLabel[d.chosen ?? "decline"]}`, detail, decisionIndex: i });
+    } else if (d.type === "commitment") {
+      const c = d.inputs.commitment as { amount: number };
+      const chosen = d.options?.find((o) => o.kind === d.chosen);
+      beats.push({
+        week: d.week,
+        kind: "decision",
+        title: `${borrowerName(d)} · Promise re-checked`,
+        detail:
+          d.chosen === "decline"
+            ? `A ${moneyCompact(c.amount)} advance promised weeks earlier was due to go out. ${borrowerName(d)} had slipped to watch and its capacity was used up, so Keel withdrew it instead of paying blind.`
+            : `A ${moneyCompact(c.amount)} promised advance was re-decided before paying out: ${optionLabel[d.chosen!]!.toLowerCase()} ${chosen ? money(chosen.amount) : ""}.`,
+        decisionIndex: i,
+      });
     } else if (d.type === "health-review") {
       const sig = d.inputs.signals as { reasons: string[] };
       beats.push({
@@ -46,6 +59,14 @@ export function storyBeats(decisions: DecisionRecord[], events: Ledger["events"]
   });
 
   for (const e of events) {
+    if (e.level === "warn" && e.text.includes("has not settled")) {
+      beats.push({
+        week: e.week,
+        kind: "incident",
+        title: `${e.text.split(":")[0]} · Paid late`,
+        detail: `${e.text.split(": ")[1]?.split(". ")[0]}. Keel took its share of what arrived, booked the rest as a receivable, and did not read late money as a weaker business.`,
+      });
+    }
     if (e.level === "warn" && e.text.toLowerCase().includes("retried")) {
       beats.push({
         week: e.week,

@@ -14,6 +14,18 @@ export interface Receipt {
   week: number;
 }
 
+export interface Receivable {
+  id: string;
+  week: number;
+  advanceId: string;
+  borrowerId: string;
+  amount: Cents;
+  /** wallet-short: the borrower wallet could not cover the charge. late-payment: customer money had not settled yet. */
+  reason: "wallet-short" | "late-payment";
+  collected: Cents;
+  settledWeek?: number;
+}
+
 export interface DecisionRecord {
   week: number;
   type: "advance-request" | "health-review" | "commitment";
@@ -34,8 +46,8 @@ export class Ledger {
   receipts: Receipt[] = [];
   decisions: DecisionRecord[] = [];
   events: { week: number; level: "info" | "warn"; text: string }[] = [];
-  /** Repayments that were due but the borrower wallet could not cover. Still owed. */
-  receivables: { week: number; advanceId: string; borrowerId: string; amount: Cents }[] = [];
+  /** Repayments that were due but not collected yet: a short wallet, or customer payments that arrive late. */
+  receivables: Receivable[] = [];
   revenue = new Map<string, Cents[]>();
   signals = new Map<string, HealthSignals>();
   private seq = 0;
@@ -70,6 +82,10 @@ export class Ledger {
       bal += r.kind === "collect" ? r.amount : -r.amount;
     }
     return bal;
+  }
+
+  openReceivables(borrowerId?: string): Receivable[] {
+    return this.receivables.filter((r) => r.settledWeek === undefined && (!borrowerId || r.borrowerId === borrowerId));
   }
 
   log(week: number, text: string, level: "info" | "warn" = "info") {

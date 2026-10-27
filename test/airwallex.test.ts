@@ -51,6 +51,7 @@ beforeAll(async () => {
         if (o.polls >= 2) o.status = "SETTLED";
         return send(200, o);
       }
+      if (url.pathname === "/api/v1/platform_reports/create") return send(201, { id: "rpt_1", status: "PENDING" });
       const list = url.pathname.match(/^\/api\/v1\/(charges|connected_account_transfers)$/);
       if (list) return send(200, { items: [...objects.values()] });
       send(404, { code: "not_found" });
@@ -110,5 +111,10 @@ describe("AirwallexBank against a fake sandbox", () => {
     expect(requestId("run-1", "collect:adv_1:w6")).toBe(requestId("run-1", "collect:adv_1:w6"));
     expect(requestId("run-2", "collect:adv_1:w6")).not.toBe(requestId("run-1", "collect:adv_1:w6"));
     expect(requestId("run-1", "x").length).toBe(36);
+  });
+
+  it("requests a BALANCE_REPORT for the portfolio snapshot", async () => {
+    expect(await bank().createBalanceReport()).toEqual({ id: "rpt_1", status: "PENDING" });
+    expect(seen.find((s) => s.path === "/api/v1/platform_reports/create")!.body).toEqual({ type: "BALANCE_REPORT", file_format: "CSV" });
   });
 });

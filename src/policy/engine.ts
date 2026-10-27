@@ -1,6 +1,7 @@
 import {
   bps,
   fmt,
+  possessive,
   type AdvanceOption,
   type AdvanceRequest,
   type Borrower,
@@ -194,7 +195,7 @@ export function buildOptions(req: AdvanceRequest, ctx: DecisionContext, cfg: Pol
     }
     if (remaining <= 0) {
       const desc = reallocations
-        .map((r) => `${fmt(r.reduceBy)} from ${ctx.borrowers.get(r.fromBorrowerId)?.name ?? r.fromBorrowerId}'s pending advance`)
+        .map((r) => `${fmt(r.reduceBy)} from ${possessive(ctx.borrowers.get(r.fromBorrowerId)?.name ?? r.fromBorrowerId)} pending advance`)
         .join(", ");
       options.push(make("reallocate", target, { reallocations, rationale: [...base, `fund ${fmt(target)} now by moving ${desc}`] }));
     }

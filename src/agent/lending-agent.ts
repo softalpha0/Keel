@@ -1,4 +1,4 @@
-import { bps, fmt, type AdvanceOption, type AdvanceRequest, type Borrower, type Cents, type Tier } from "../domain.js";
+import { bps, fmt, possessive, type Advance, type AdvanceOption, type AdvanceRequest, type Borrower, type Cents, type Commitment, type Tier } from "../domain.js";
 import type { BankAdapter } from "../bank/types.js";
 import { Executor } from "../executor.js";
 import type { DecisionRecord, Ledger } from "../ledger.js";
@@ -16,6 +16,14 @@ export const autoApprover: Approver = {
     return { approved: true, by: "demo-operator" };
   },
 };
+
+/** Cash that actually settled into borrower wallets this week. */
+export interface Settlement {
+  /** Per borrower: the part of this week's sales that settled this week. */
+  received: Map<string, Cents>;
+  /** Earlier weeks' customer payments that arrived this week. */
+  late: { borrowerId: string; forWeek: number; amount: Cents }[];
+}
 
 export interface WeekReport {
   week: number;
@@ -44,9 +52,14 @@ export class LendingAgent {
     this.executor = new Executor(bank, ledger, cfg, platformAccountId);
   }
 
-  async runWeek(week: number, revenue: Map<string, Cents>, requests: AdvanceRequest[]): Promise<WeekReport> {
+  /**
+   * `revenue` is what each borrower sold this week (the platform sees it as it happens).
+   * `settlement` is the cash that actually landed: some customer payments settle late, and Keel
+   * only takes its share of money that has arrived. Defaults to "everything settled on time".
+   */
+  async runWeek(week: number, revenue: Map<string, Cents>, requests: AdvanceRequest[], settlement?: Settlement): Promise<WeekReport> {
     this.observe(week, revenue);
-    await this.collect(week, revenue);
+    await this.collect(week, revenue, settlement);
     this.reviewHealth(week);
     await this.fundCommitments(week);
     for (const req of requests) await this.decide(req);
@@ -61,38 +74,74 @@ export class LendingAgent {
     }
   }
 
-  private async collect(week: number, revenue: Map<string, Cents>) {
+  private async collect(week: number, revenue: Map<string, Cents>, settlement?: Settlement) {
     // Read each borrower's wallet once; several advances may draw on it this week.
     const available = new Map<string, Cents>();
+    const wallet = async (b: Borrower) => {
+      if (!available.has(b.id)) available.set(b.id, await this.bank.getBalance(b.accountId));
+      return available.get(b.id)!;
+    };
+    const charge = async (b: Borrower, adv: Advance, amount: Cents, key: string, reference: string) => {
+      const r = await this.executor.move({ kind: "collect", borrowerId: b.id, borrowerAccountId: b.accountId, amount, idempotencyKey: key, reference, week });
+      if (r.status !== "settled") {
+        this.ledger.log(week, `Collection ${r.idempotencyKey} ${r.status}`, "warn");
+        return false;
+      }
+      adv.outstanding -= amount;
+      available.set(b.id, available.get(b.id)! - amount);
+      return true;
+    };
+
+    // 1. Catch up on what is still owed from earlier weeks.
+    for (const rc of this.ledger.openReceivables()) {
+      const b = this.borrowers.get(rc.borrowerId)!;
+      const adv = this.ledger.advances.find((a) => a.id === rc.advanceId)!;
+      // Late customer money is only ours once it lands; a short wallet is retried every week.
+      const landed = (settlement?.late ?? []).filter((l) => l.borrowerId === b.id).reduce((s, l) => s + l.amount, 0);
+      const cap = rc.reason === "late-payment" ? bps(landed, b.holdbackBps) : Infinity;
+      const amount = Math.min(rc.amount - rc.collected, adv.outstanding, cap, await wallet(b));
+      if (amount <= 0) continue;
+      if (!(await charge(b, adv, amount, `catchup:${rc.id}:w${week}`, `Catch-up ${adv.id} (${rc.id}) week ${week}`))) continue;
+      rc.collected += amount;
+      if (rc.collected >= rc.amount || adv.outstanding <= 0) rc.settledWeek = week;
+      this.ledger.log(
+        week,
+        `${b.name}: collected ${fmt(amount)} catch-up on ${rc.id} (${rc.reason === "late-payment" ? `late customer payments from week ${rc.week} settled` : "wallet topped up"})` +
+          (rc.settledWeek === week ? "; receivable cleared" : `; ${fmt(rc.amount - rc.collected)} still owed`),
+      );
+    }
+
+    // 2. This week's revenue share, on the money that actually settled.
     for (const adv of this.ledger.advances) {
       if (adv.outstanding <= 0 || adv.disbursedWeek >= week) continue;
       const b = this.borrowers.get(adv.borrowerId)!;
-      const due = repaymentDue(revenue.get(b.id) ?? 0, b.holdbackBps, adv.outstanding);
+      const sold = revenue.get(b.id) ?? 0;
+      const settled = settlement?.received.get(b.id) ?? sold;
+      const owedOnSales = repaymentDue(sold, b.holdbackBps, adv.outstanding);
+      const due = repaymentDue(settled, b.holdbackBps, adv.outstanding);
+
+      if (owedOnSales > due) {
+        const late = owedOnSales - due;
+        const id = this.ledger.nextId("rcv");
+        this.ledger.receivables.push({ id, week, advanceId: adv.id, borrowerId: b.id, amount: late, reason: "late-payment", collected: 0 });
+        this.ledger.log(
+          week,
+          `${b.name}: ${fmt(sold - settled)} of this week's ${fmt(sold)} sales has not settled. Collected on what arrived; ${fmt(late)} share recorded as ${id}. Sales are on trend, so this is late money, not a health signal.`,
+          "warn",
+        );
+      }
       if (due <= 0) continue;
-      if (!available.has(b.id)) available.set(b.id, await this.bank.getBalance(b.accountId));
-      const amount = Math.min(due, available.get(b.id)!);
+      const amount = Math.min(due, await wallet(b));
 
       // Never send a charge the wallet cannot cover: record the gap as a receivable instead.
       if (amount < due) {
         const shortfall = due - amount;
-        this.ledger.receivables.push({ week, advanceId: adv.id, borrowerId: b.id, amount: shortfall });
-        this.ledger.log(week, `${b.name} wallet short by ${fmt(shortfall)} for repayment on ${adv.id}; recorded as a receivable`, "warn");
+        const id = this.ledger.nextId("rcv");
+        this.ledger.receivables.push({ id, week, advanceId: adv.id, borrowerId: b.id, amount: shortfall, reason: "wallet-short", collected: 0 });
+        this.ledger.log(week, `${b.name} wallet short by ${fmt(shortfall)} for repayment on ${adv.id}; recorded as ${id}`, "warn");
       }
       if (amount <= 0) continue;
-
-      const r = await this.executor.move({
-        kind: "collect",
-        borrowerId: b.id,
-        borrowerAccountId: b.accountId,
-        amount,
-        idempotencyKey: `collect:${adv.id}:w${week}`,
-        reference: `Repayment ${adv.id} week ${week}`,
-        week,
-      });
-      if (r.status === "settled") {
-        adv.outstanding -= amount;
-        available.set(b.id, available.get(b.id)! - amount);
-      } else this.ledger.log(week, `Collection ${r.idempotencyKey} ${r.status}`, "warn");
+      await charge(b, adv, amount, `collect:${adv.id}:w${week}`, `Repayment ${adv.id} week ${week}`);
     }
   }
 
@@ -123,22 +172,43 @@ export class LendingAgent {
     }
   }
 
+  /**
+   * A promise made weeks ago is re-checked before the money moves: the borrower's health,
+   * their capacity and the reserve floor may all have changed since. If paying it in full is
+   * still the best feasible option it goes out; otherwise the commitment is re-decided like a new request.
+   */
   private async fundCommitments(week: number) {
     for (const c of this.ledger.commitments.filter((c) => c.week <= week)) {
-      try {
-        await this.disburse(week, c.borrowerId, c.amount, `commit:${c.id}`);
-      } catch (err) {
-        if (!(err instanceof FloorBreachError)) throw err;
-        c.week = week + 1;
-        this.ledger.log(week, `Held pending advance for ${this.borrowers.get(c.borrowerId)?.name ?? c.borrowerId} to week ${c.week}: ${err.message}`, "warn");
+      const b = this.borrowers.get(c.borrowerId)!;
+      const balance = await this.bank.getBalance(this.platformAccountId);
+      // Judge the commitment as if it were not already promised.
+      const others = this.ledger.commitments.filter((x) => x.id !== c.id);
+      const ctx = this.context(week, balance, others);
+      ctx.exposure.set(b.id, (ctx.exposure.get(b.id) ?? 0) - c.amount);
+      const req: AdvanceRequest = { id: c.id, borrowerId: b.id, amount: c.amount, week };
+      const options = buildOptions(req, ctx, this.cfg);
+      const feasible = rankOptions(options);
+
+      if (feasible[0]?.kind === "full" && feasible[0].amount === c.amount) {
+        try {
+          await this.disburse(week, b.id, c.amount, `commit:${c.id}`);
+        } catch (err) {
+          if (!(err instanceof FloorBreachError)) throw err;
+          c.week = week + 1;
+          this.ledger.log(week, `Held pending advance for ${b.name} to week ${c.week}: ${err.message}`, "warn");
+          continue;
+        }
+        this.ledger.commitments = others;
+        this.ledger.log(week, `Funded pending advance for ${b.name}: ${fmt(c.amount)} (${c.id})`);
         continue;
       }
-      this.ledger.commitments = this.ledger.commitments.filter((x) => x.id !== c.id);
-      this.ledger.log(week, `Funded pending advance for ${this.borrowers.get(c.borrowerId)?.name ?? c.borrowerId}: ${fmt(c.amount)} (${c.id})`);
+
+      this.ledger.commitments = others;
+      await this.choose(req, b, balance, ctx, options, feasible, "commitment", c);
     }
   }
 
-  private context(week: number, balance: Cents): DecisionContext {
+  private context(week: number, balance: Cents, commitments = this.ledger.commitments): DecisionContext {
     const exposure = new Map<string, Cents>();
     let weekly = 0;
     for (const b of this.borrowers.values()) {
@@ -150,7 +220,7 @@ export class LendingAgent {
     return {
       week,
       platformBalance: balance,
-      commitments: [...this.ledger.commitments],
+      commitments: [...commitments],
       borrowers: this.borrowers,
       signals: this.ledger.signals,
       exposure,
@@ -163,9 +233,20 @@ export class LendingAgent {
     const balance = await this.bank.getBalance(this.platformAccountId);
     const ctx = this.context(req.week, balance);
     const options = buildOptions(req, ctx, this.cfg);
-    const feasible = rankOptions(options);
-    const sig = this.ledger.signals.get(b.id)!;
+    return this.choose(req, b, balance, ctx, options, rankOptions(options), "advance-request");
+  }
 
+  private async choose(
+    req: AdvanceRequest,
+    b: Borrower,
+    balance: Cents,
+    ctx: DecisionContext,
+    options: AdvanceOption[],
+    feasible: AdvanceOption[],
+    type: "advance-request" | "commitment",
+    commitment?: Commitment,
+  ): Promise<DecisionRecord> {
+    const sig = this.ledger.signals.get(b.id)!;
     const decision = await this.advisor.decide({
       week: req.week,
       borrower: b,
@@ -176,21 +257,26 @@ export class LendingAgent {
     });
     // Guardrail: whatever the advisor says, only a policy-feasible option can execute.
     const chosen = feasible.find((o) => o.kind === decision.kind) ?? feasible[0]!;
+    const memo = commitment
+      ? `Re-checked ${possessive(b.name)} pending ${fmt(commitment.amount)} advance (${commitment.reason}) before paying out. ` +
+        decision.memo.replace(`${b.name} asked for ${fmt(req.amount)}. `, "").replace("Chose decline:", "Withdrew it:")
+      : decision.memo;
 
     const record: DecisionRecord = {
       week: req.week,
-      type: "advance-request",
+      type,
       borrowerId: b.id,
-      inputs: { request: req, platformBalance: balance, reserveFloor: this.cfg.reserveFloor, signals: sig, commitments: ctx.commitments },
+      inputs: { request: req, platformBalance: balance, reserveFloor: this.cfg.reserveFloor, signals: sig, commitments: ctx.commitments, ...(commitment && { commitment }) },
       options,
       chosen: chosen.kind,
       decidedBy: decision.decidedBy,
-      memo: decision.memo,
+      memo,
       receipts: [],
     };
 
     const movesMoney = chosen.kind !== "decline";
-    const required = movesMoney && (chosen.amount > this.cfg.approvalThreshold || chosen.reallocations.length > 0);
+    // A pending advance was approved when it was promised; only moving other borrowers' money needs a new sign-off.
+    const required = movesMoney && ((type === "advance-request" && chosen.amount > this.cfg.approvalThreshold) || chosen.reallocations.length > 0);
     if (required) {
       const a = await this.approver.approve(record, chosen);
       record.approval = { required, ...a };
@@ -204,7 +290,8 @@ export class LendingAgent {
 
     if (record.approval.approved && movesMoney) await this.apply(req, chosen, record);
     this.ledger.decisions.push(record);
-    this.ledger.log(req.week, `${b.name} requested ${fmt(req.amount)} → ${record.chosen}${movesMoney ? ` ${fmt(chosen.amount)} (week ${chosen.executeWeek})` : ""} [${decision.decidedBy}]`);
+    const what = commitment ? `Pending advance for ${b.name} (${fmt(req.amount)})` : `${b.name} requested ${fmt(req.amount)}`;
+    this.ledger.log(req.week, `${what} → ${record.chosen}${movesMoney ? ` ${fmt(chosen.amount)} (week ${chosen.executeWeek})` : ""} [${decision.decidedBy}]`, commitment ? "warn" : "info");
     return record;
   }
 
@@ -214,14 +301,14 @@ export class LendingAgent {
       if (!c) continue;
       c.amount -= r.reduceBy;
       if (c.amount <= 0) this.ledger.commitments = this.ledger.commitments.filter((x) => x.id !== c.id);
-      this.ledger.log(req.week, `Reallocated ${fmt(r.reduceBy)} from ${this.borrowers.get(r.fromBorrowerId)?.name ?? r.fromBorrowerId}'s pending advance (${r.commitmentId})`);
+      this.ledger.log(req.week, `Reallocated ${fmt(r.reduceBy)} from ${possessive(this.borrowers.get(r.fromBorrowerId)?.name ?? r.fromBorrowerId)} pending advance (${r.commitmentId})`);
     }
     if (o.executeWeek > req.week) {
       const id = this.ledger.nextId("cmt");
       this.ledger.commitments.push({ id, borrowerId: req.borrowerId, amount: o.amount, week: o.executeWeek, reason: `delayed ${req.id}` });
       return;
     }
-    const receipt = await this.disburse(req.week, req.borrowerId, o.amount, `req:${req.id}`);
+    const receipt = await this.disburse(req.week, req.borrowerId, o.amount, `${record.type === "commitment" ? "commit" : "req"}:${req.id}`);
     record.receipts.push(receipt);
   }
 
