@@ -3,7 +3,7 @@
 // Requires connected accounts AND platform payments enabled by Airwallex (devhelp@airwallex.com).
 import { randomUUID } from "node:crypto";
 import { AirwallexBank, AirwallexError } from "../bank/airwallex.js";
-import { BORROWERS, connectedAccountBody, usdGlobalAccountBody } from "./payloads.js";
+import { BORROWERS, connectedAccountBody, sgdGlobalAccountBody, usdGlobalAccountBody } from "./payloads.js";
 import { borrowerAccountsFromEnv, loadEnv } from "./env.js";
 
 loadEnv();
@@ -95,7 +95,20 @@ for (const b of BORROWERS) {
   globals.push(`${acct}=${ga}`);
 }
 
+// npm run sandbox:setup -- --fx : give Kopi Roasters an SGD Global Account so it can sell and repay in SGD.
+if (process.argv.includes("--fx")) {
+  const kopi = accounts.kopi;
+  if (!kopi) throw new Error("kopi has no connected account yet; run npm run sandbox:setup first");
+  const list = await step("list Kopi's Global Accounts", () =>
+    bank.call<{ items?: { id: string; currency?: string; required_features?: { currency: string }[] }[] }>("/api/v1/global_accounts", { onBehalfOf: kopi }),
+  );
+  let sgd = list.items?.find((g) => g.currency === "SGD" || g.required_features?.some((f) => f.currency === "SGD"))?.id;
+  if (!sgd) sgd = (await step("create SGD Global Account for Kopi", () => bank.call<{ id: string }>("/api/v1/global_accounts/create", { onBehalfOf: kopi, body: sgdGlobalAccountBody(randomUUID()) }))).id;
+  globals.push(`${kopi}:SGD=${sgd}`);
+  console.log("\nFor multi-currency runs also add: KEEL_FX=1");
+}
+
 console.log("\nAdd these lines to .env:\n");
 console.log(`AIRWALLEX_BORROWER_ACCOUNTS=${Object.entries(accounts).map(([k, v]) => `${k}=${v}`).join(",")}`);
-if (globals.length) console.log(`AIRWALLEX_GLOBAL_ACCOUNTS=${globals.join(",")}`);
+if (globals.length) console.log(`AIRWALLEX_GLOBAL_ACCOUNTS=${globals.join(",")}   (append to any you already have)`);
 console.log("\nThen: npm run sandbox:check, and npm run demo:sandbox");

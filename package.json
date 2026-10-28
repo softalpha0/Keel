@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit && tsc -p web/tsconfig.json",
     "test": "vitest run",
     "demo:sandbox": "tsx src/cli.ts --airwallex",
+    "demo:sandbox:llm": "tsx src/cli.ts --airwallex --llm",
     "sandbox:check": "tsx src/sandbox/check.ts",
     "sandbox:setup": "tsx src/sandbox/setup.ts"
   },

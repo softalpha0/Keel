@@ -1,4 +1,4 @@
-import { bps, fmt, possessive, type Advance, type AdvanceOption, type AdvanceRequest, type Borrower, type Cents, type Commitment, type Tier } from "../domain.js";
+import { bps, fmt, fmtIn, PLATFORM_CURRENCY, possessive, type Advance, type AdvanceOption, type AdvanceRequest, type Borrower, type Cents, type Commitment, type Tier } from "../domain.js";
 import type { BankAdapter } from "../bank/types.js";
 import { Executor } from "../executor.js";
 import type { DecisionRecord, Ledger } from "../ledger.js";
@@ -57,8 +57,14 @@ export class LendingAgent {
    * `settlement` is the cash that actually landed: some customer payments settle late, and Keel
    * only takes its share of money that has arrived. Defaults to "everything settled on time".
    */
+  /**
+   * `revenue` is what each borrower sold this week, in the borrower's own currency (the platform sees it as it happens).
+   * `settlement` is the cash that actually landed: some customer payments settle late, and Keel
+   * only takes its share of money that has arrived. Defaults to "everything settled on time".
+   */
   async runWeek(week: number, revenue: Map<string, Cents>, requests: AdvanceRequest[], settlement?: Settlement): Promise<WeekReport> {
-    this.observe(week, revenue);
+    this.rates.clear();
+    await this.observe(week, revenue);
     await this.collect(week, revenue, settlement);
     this.reviewHealth(week);
     await this.fundCommitments(week);
@@ -66,29 +72,57 @@ export class LendingAgent {
     return this.reconcile(week);
   }
 
-  private observe(week: number, revenue: Map<string, Cents>) {
+  /** This week's rate from the borrower's currency into USD, read from the bank once per currency. */
+  private rates = new Map<string, number>();
+  private async usdPer(b: Borrower): Promise<number> {
+    const ccy = b.currency ?? PLATFORM_CURRENCY;
+    if (ccy === PLATFORM_CURRENCY) return 1;
+    if (!this.rates.has(ccy)) {
+      if (!this.bank.fxRate) throw new Error(`${this.bank.name} cannot quote ${ccy}/${PLATFORM_CURRENCY}`);
+      this.rates.set(ccy, await this.bank.fxRate(ccy, PLATFORM_CURRENCY));
+    }
+    return this.rates.get(ccy)!;
+  }
+
+  private async observe(week: number, revenue: Map<string, Cents>) {
     for (const [id, amount] of revenue) {
+      const b = this.borrowers.get(id);
+      // Health is judged in USD, so every borrower is measured on the same scale as the fund.
+      const usdAmount = b ? Math.round(amount * (await this.usdPer(b))) : amount;
       const hist = this.ledger.revenue.get(id) ?? [];
-      hist.push(amount);
+      hist.push(usdAmount);
       this.ledger.revenue.set(id, hist);
     }
   }
 
   private async collect(week: number, revenue: Map<string, Cents>, settlement?: Settlement) {
-    // Read each borrower's wallet once; several advances may draw on it this week.
+    // Read each borrower's wallet once; several advances may draw on it this week. Amounts here are in the borrower's currency.
     const available = new Map<string, Cents>();
     const wallet = async (b: Borrower) => {
-      if (!available.has(b.id)) available.set(b.id, await this.bank.getBalance(b.accountId));
+      if (!available.has(b.id)) available.set(b.id, await this.bank.getBalance(b.accountId, b.currency));
       return available.get(b.id)!;
     };
+    /** What is still owed on an advance, expressed in the borrower's currency at this week's rate. */
+    const owedLocal = async (b: Borrower, adv: Advance) => Math.ceil(adv.outstanding / (await this.usdPer(b)));
     const charge = async (b: Borrower, adv: Advance, amount: Cents, key: string, reference: string) => {
-      const r = await this.executor.move({ kind: "collect", borrowerId: b.id, borrowerAccountId: b.accountId, amount, idempotencyKey: key, reference, week });
+      const r = await this.executor.move({
+        kind: "collect",
+        borrowerId: b.id,
+        borrowerAccountId: b.accountId,
+        amount,
+        currency: b.currency,
+        idempotencyKey: key,
+        reference,
+        week,
+      });
       if (r.status !== "settled") {
         this.ledger.log(week, `Collection ${r.idempotencyKey} ${r.status}`, "warn");
         return false;
       }
-      adv.outstanding -= amount;
+      // r.amount is what reached the platform in USD (after conversion for a foreign borrower).
+      adv.outstanding = Math.max(0, adv.outstanding - r.amount);
       available.set(b.id, available.get(b.id)! - amount);
+      if (r.fx) this.ledger.log(week, `${b.name}: collected ${fmtIn(r.fx.localAmount, r.fx.currency)}, converted to ${fmt(r.amount)} at ${r.fx.rate.toFixed(4)} (${r.fx.conversionId})`);
       return true;
     };
 
@@ -99,15 +133,15 @@ export class LendingAgent {
       // Late customer money is only ours once it lands; a short wallet is retried every week.
       const landed = (settlement?.late ?? []).filter((l) => l.borrowerId === b.id).reduce((s, l) => s + l.amount, 0);
       const cap = rc.reason === "late-payment" ? bps(landed, b.holdbackBps) : Infinity;
-      const amount = Math.min(rc.amount - rc.collected, adv.outstanding, cap, await wallet(b));
+      const amount = Math.min(rc.amount - rc.collected, await owedLocal(b, adv), cap, await wallet(b));
       if (amount <= 0) continue;
       if (!(await charge(b, adv, amount, `catchup:${rc.id}:w${week}`, `Catch-up ${adv.id} (${rc.id}) week ${week}`))) continue;
       rc.collected += amount;
       if (rc.collected >= rc.amount || adv.outstanding <= 0) rc.settledWeek = week;
       this.ledger.log(
         week,
-        `${b.name}: collected ${fmt(amount)} catch-up on ${rc.id} (${rc.reason === "late-payment" ? `late customer payments from week ${rc.week} settled` : "wallet topped up"})` +
-          (rc.settledWeek === week ? "; receivable cleared" : `; ${fmt(rc.amount - rc.collected)} still owed`),
+        `${b.name}: collected ${fmtIn(amount, b.currency)} catch-up on ${rc.id} (${rc.reason === "late-payment" ? `late customer payments from week ${rc.week} settled` : "wallet topped up"})` +
+          (rc.settledWeek === week ? "; receivable cleared" : `; ${fmtIn(rc.amount - rc.collected, b.currency)} still owed`),
       );
     }
 
@@ -117,16 +151,17 @@ export class LendingAgent {
       const b = this.borrowers.get(adv.borrowerId)!;
       const sold = revenue.get(b.id) ?? 0;
       const settled = settlement?.received.get(b.id) ?? sold;
-      const owedOnSales = repaymentDue(sold, b.holdbackBps, adv.outstanding);
-      const due = repaymentDue(settled, b.holdbackBps, adv.outstanding);
+      const owed = await owedLocal(b, adv);
+      const owedOnSales = repaymentDue(sold, b.holdbackBps, owed);
+      const due = repaymentDue(settled, b.holdbackBps, owed);
 
       if (owedOnSales > due) {
         const late = owedOnSales - due;
         const id = this.ledger.nextId("rcv");
-        this.ledger.receivables.push({ id, week, advanceId: adv.id, borrowerId: b.id, amount: late, reason: "late-payment", collected: 0 });
+        this.ledger.receivables.push({ id, week, advanceId: adv.id, borrowerId: b.id, amount: late, currency: b.currency, reason: "late-payment", collected: 0 });
         this.ledger.log(
           week,
-          `${b.name}: ${fmt(sold - settled)} of this week's ${fmt(sold)} sales has not settled. Collected on what arrived; ${fmt(late)} share recorded as ${id}. Sales are on trend, so this is late money, not a health signal.`,
+          `${b.name}: ${fmtIn(sold - settled, b.currency)} of this week's ${fmtIn(sold, b.currency)} sales has not settled. Collected on what arrived; ${fmtIn(late, b.currency)} share recorded as ${id}. Sales are on trend, so this is late money, not a health signal.`,
           "warn",
         );
       }
@@ -137,8 +172,8 @@ export class LendingAgent {
       if (amount < due) {
         const shortfall = due - amount;
         const id = this.ledger.nextId("rcv");
-        this.ledger.receivables.push({ id, week, advanceId: adv.id, borrowerId: b.id, amount: shortfall, reason: "wallet-short", collected: 0 });
-        this.ledger.log(week, `${b.name} wallet short by ${fmt(shortfall)} for repayment on ${adv.id}; recorded as ${id}`, "warn");
+        this.ledger.receivables.push({ id, week, advanceId: adv.id, borrowerId: b.id, amount: shortfall, currency: b.currency, reason: "wallet-short", collected: 0 });
+        this.ledger.log(week, `${b.name} wallet short by ${fmtIn(shortfall, b.currency)} for repayment on ${adv.id}; recorded as ${id}`, "warn");
       }
       if (amount <= 0) continue;
       await charge(b, adv, amount, `collect:${adv.id}:w${week}`, `Repayment ${adv.id} week ${week}`);

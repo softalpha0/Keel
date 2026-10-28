@@ -43,7 +43,7 @@ export class ClaudeAdvisor implements Advisor {
     try {
       const res = await this.client.beta.messages.create({
         model: "claude-opus-5-5",
-        max_tokens: 4000,
+        max_tokens: 16000,
         betas: ["server-side-fallback-2026-07-01"],
         fallbacks: "default",
         output_config: { effort: "medium", format: { type: "json_schema", schema: CHOICE_SCHEMA } },
@@ -52,6 +52,7 @@ export class ClaudeAdvisor implements Advisor {
       } as Anthropic.Beta.Messages.MessageCreateParamsNonStreaming);
 
       if (res.stop_reason === "refusal") throw new Error("model declined");
+      if (res.stop_reason === "max_tokens") throw new Error("reply cut off at max_tokens");
       const text = res.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
       const parsed = Choice.parse(JSON.parse(text));
       if (!input.feasible.some((o) => o.kind === parsed.kind)) throw new Error(`model picked unlisted option ${parsed.kind}`);

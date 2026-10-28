@@ -20,7 +20,17 @@ export interface Borrower {
   accountId: string;
   /** Share of weekly revenue collected as repayment, in basis points. */
   holdbackBps: number;
+  /** Currency the borrower sells and repays in. Omitted = the platform currency (USD). */
+  currency?: string;
 }
+
+export const PLATFORM_CURRENCY = "USD";
+
+const SYMBOL: Record<string, string> = { USD: "$", SGD: "S$", EUR: "€", GBP: "£", AUD: "A$", HKD: "HK$" };
+
+/** Minor units in any currency: fmtIn(108000, "SGD") -> "S$1,080". */
+export const fmtIn = (c: Cents, currency = PLATFORM_CURRENCY): string =>
+  currency === PLATFORM_CURRENCY ? fmt(c) : (c < 0 ? "-" : "") + (SYMBOL[currency] ?? `${currency} `) + Math.round(Math.abs(c) / 100).toLocaleString("en-US");
 
 export interface Advance {
   id: string;

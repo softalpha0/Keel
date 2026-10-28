@@ -201,6 +201,27 @@
   color: var(--ink-2);
 }
 
+.proof-checks {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.proof-checks li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.proof-checks svg {
+  color: var(--good);
+  flex: none;
+}
+
 .proof-rails {
   display: grid;
   gap: 10px;
@@ -828,6 +849,150 @@
   font-size: 14px;
   line-height: 1.55;
   color: var(--ink-2);
+}
+
+/* ---------- Operations ---------- */
+
+.ops {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  margin-top: 40px;
+}
+
+.op {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  padding: 24px;
+}
+
+.op h3 {
+  font-size: 19px;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+
+.op p {
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--ink-2);
+}
+
+.op-wide {
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 32px;
+  align-items: center;
+}
+
+.op-copy {
+  display: grid;
+  gap: 12px;
+}
+
+.op-tag {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+@media (max-width: 900px) {
+  .ops {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .op-wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* A Slack message, drawn in the page's own tokens. */
+.slack {
+  display: grid;
+  gap: 8px;
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.slack-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.slack-app {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--ink);
+  color: var(--page);
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.slack-badge {
+  padding: 0 4px;
+  border-radius: 3px;
+  background: var(--hairline);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+.slack-title {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.slack-body {
+  color: var(--ink-2);
+}
+
+.slack-body strong {
+  color: var(--ink);
+}
+
+.slack-code {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--hairline);
+  font: 12px/1.6 var(--font-mono);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.slack-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.slack-btn {
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 13px;
+  box-shadow: inset 0 0 0 1px var(--ring-strong);
+}
+
+.slack-primary {
+  background: #2f7a57;
+  color: #fff;
+  box-shadow: none;
+}
+
+.slack-danger {
+  color: var(--critical-ink);
 }
 
 /* ---------- Motion ---------- */

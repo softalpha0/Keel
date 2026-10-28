@@ -2,6 +2,7 @@ import { createServer, type IncomingMessage, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { AirwallexBank, requestId } from "../src/bank/airwallex.js";
+import { signForTest, WebhookHub } from "../src/bank/webhooks.js";
 
 /** A tiny fake of the Airwallex sandbox, following the builder guide's conventions. */
 interface Seen {
@@ -16,6 +17,9 @@ let base = "";
 const seen: Seen[] = [];
 const objects = new Map<string, { id: string; request_id: string; amount: number; status: string; polls: number }>();
 let failNextCreateAfterSaving = false;
+/** When set, created objects stay NEW until a webhook settles them. */
+let holdForWebhook = false;
+let reportPolls = 0;
 
 beforeAll(async () => {
   server = createServer((req, res) => {
@@ -30,6 +34,11 @@ beforeAll(async () => {
         res.end(JSON.stringify(payload));
       };
       if (url.pathname === "/api/v1/authentication/login") return send(201, { token: "tkn", expires_at: new Date(Date.now() + 1_800_000).toISOString() });
+      // Signed download links need no bearer token, like Airwallex's.
+      if (url.pathname === "/files/rpt_1.csv") {
+        res.writeHead(200, { "Content-Type": "text/csv" });
+        return res.end("account_id,currency,available_balance,reserved_balance,total_balance,last_update\nacct_kopi,USD,1234.5,0,1234.5,2026-10-28\n");
+      }
       if (req.headers.authorization !== "Bearer tkn") return send(401, { code: "unauthorized" });
       if (url.pathname === "/api/v1/balances/current") {
         return send(200, [{ currency: "USD", available_amount: req.headers["x-on-behalf-of"] ? 1234.5 : 100000 }]);
@@ -37,7 +46,7 @@ beforeAll(async () => {
       const create = url.pathname.match(/^\/api\/v1\/(charges|connected_account_transfers)\/create$/);
       if (create) {
         const id = `${create[1] === "charges" ? "chg" : "cat"}_${objects.size + 1}`;
-        objects.set(id, { id, request_id: body.request_id, amount: body.amount, status: "NEW", polls: 0 });
+        objects.set(id, { id, request_id: body.request_id, amount: body.amount, status: "NEW", polls: holdForWebhook ? -1e9 : 0 });
         if (failNextCreateAfterSaving) {
           failNextCreateAfterSaving = false;
           return send(502, { code: "bad_gateway" }); // created, but the caller never learns the id
@@ -52,6 +61,16 @@ beforeAll(async () => {
         return send(200, o);
       }
       if (url.pathname === "/api/v1/platform_reports/create") return send(201, { id: "rpt_1", status: "PENDING" });
+      if (url.pathname === "/api/v1/platform_reports/rpt_1") {
+        return send(200, ++reportPolls < 2 ? { id: "rpt_1", status: "PENDING" } : { id: "rpt_1", status: "COMPLETED", download_url: `${base}/files/rpt_1.csv` });
+      }
+      if (url.pathname === "/api/v1/fx/rates/current") {
+        // `rate` quoted in the other direction on purpose: Keel must derive the rate from the amounts.
+        return send(200, { rate: 1.3514, currency_pair: "USDSGD", rate_details: [{ level: "INSTANT", buy_amount: 7400, sell_amount: 10000 }] });
+      }
+      if (url.pathname === "/api/v1/fx/conversions/create") {
+        return send(201, { conversion_id: "conv_1", request_id: body.request_id, sell_amount: Number(body.sell_amount), buy_amount: Number(body.sell_amount) * 0.74, client_rate: 0.74, status: "SCHEDULED" });
+      }
       const list = url.pathname.match(/^\/api\/v1\/(charges|connected_account_transfers)$/);
       if (list) return send(200, { items: [...objects.values()] });
       send(404, { code: "not_found" });
@@ -116,5 +135,38 @@ describe("AirwallexBank against a fake sandbox", () => {
   it("requests a BALANCE_REPORT for the portfolio snapshot", async () => {
     expect(await bank().createBalanceReport()).toEqual({ id: "rpt_1", status: "PENDING" });
     expect(seen.find((s) => s.path === "/api/v1/platform_reports/create")!.body).toEqual({ type: "BALANCE_REPORT", file_format: "CSV" });
+  });
+
+  it("downloads and parses the BALANCE_REPORT once it completes", async () => {
+    const snap = await bank().balanceSnapshot();
+    expect(snap).toEqual({ reportId: "rpt_1", rows: [{ accountId: "acct_kopi", currency: "USD", available: 123_450, total: 123_450 }] });
+    expect(reportPolls).toBe(2);
+  });
+
+  it("quotes FX from the amounts and converts with a request_id", async () => {
+    const b = bank();
+    expect(await b.fxRate("SGD", "USD")).toBeCloseTo(0.74, 6);
+    const c = await b.convert({ accountId: "platform", sellCurrency: "SGD", buyCurrency: "USD", sellAmount: 100_000, idempotencyKey: "fx:collect:adv_1:w4" });
+    expect(c).toEqual({ id: "conv_1", sellAmount: 100_000, buyAmount: 74_000, rate: 0.74 });
+    const sent = seen.find((s) => s.path === "/api/v1/fx/conversions/create")!;
+    expect(sent.body).toMatchObject({ sell_currency: "SGD", buy_currency: "USD", sell_amount: "1000", request_id: requestId("run-1", "fx:collect:adv_1:w4") });
+  });
+
+  it("learns a transfer settled from a signed webhook, then reads it back to confirm", async () => {
+    const hub = new WebhookHub("whsec");
+    const b = bank();
+    b.useWebhooks(hub);
+    holdForWebhook = true;
+    setTimeout(() => {
+      const o = [...objects.values()].at(-1)!;
+      o.status = "SETTLED";
+      const raw = JSON.stringify({ id: "evt_1", name: "connected_account_transfer.settled", data: { id: o.id, status: "SETTLED" } });
+      hub.handle(raw, signForTest("whsec", raw));
+    }, 300);
+    const t0 = Date.now();
+    const t = await b.transfer({ fromAccountId: "platform", toAccountId: "acct_x", amount: 100_00, idempotencyKey: "disburse:req:wh", reference: "Advance" });
+    holdForWebhook = false;
+    expect(t).toMatchObject({ status: "settled", confirmedBy: "webhook" });
+    expect(Date.now() - t0).toBeLessThan(3_000);
   });
 });

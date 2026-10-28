@@ -16,7 +16,10 @@ export interface Scenario {
   fundSize: Cents;
   reserveFloor: Cents;
   borrowers: Borrower[];
+  /** Weekly sales in USD terms. A borrower with its own currency sells the equivalent amount in that currency. */
   revenue: (borrowerId: string, week: number) => Cents;
+  /** USD per unit of each foreign currency, by week (the rate the bank will quote). */
+  fx: Record<string, (week: number) => number>;
   requests: AdvanceRequest[];
   /** Advances approved before the run starts, still waiting to be paid out. */
   pipeline: Commitment[];
@@ -75,11 +78,14 @@ export function demoScenario(overrides: Partial<ScenarioParams> = {}): Scenario 
     fundSize: usd(100_000),
     reserveFloor: usd(p.reserveFloorDollars),
     borrowers: [
-      { id: "kopi", name: "Kopi Roasters", accountId: "acct_kopi", holdbackBps: 1_000 },
+      // A Singapore roaster: sells and repays in SGD, while the fund lends and keeps its books in USD.
+      { id: "kopi", name: "Kopi Roasters", accountId: "acct_kopi", holdbackBps: 1_000, currency: "SGD" },
       { id: "nimbus", name: "Nimbus Apparel", accountId: "acct_nimbus", holdbackBps: 1_200 },
       { id: "ledgerly", name: "Ledgerly SaaS", accountId: "acct_ledgerly", holdbackBps: 1_000 },
     ],
     revenue: (id, week) => series.get(id)?.[week] ?? 0,
+    // SGD drifts around 0.74 USD, enough to move Kopi's repayments in dollar terms.
+    fx: { SGD: (w) => Number((0.742 + 0.006 * Math.sin(w / 1.7) - 0.0015 * w).toFixed(4)) },
     requests: [
       { id: "req_1", borrowerId: "kopi", amount: usd(22_000), week: 3 },
       { id: "req_2", borrowerId: "ledgerly", amount: usd(20_000), week: 4 },

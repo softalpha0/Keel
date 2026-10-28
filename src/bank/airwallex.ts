@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Cents } from "../domain.js";
-import type { BankAdapter, Transfer, TransferRequest, TransferStatus } from "./types.js";
+import type { BalanceRow, BalanceSnapshot, BankAdapter, Conversion, ConversionRequest, Transfer, TransferRequest, TransferStatus } from "./types.js";
+import type { WebhookHub } from "./webhooks.js";
 
 /**
  * Airwallex sandbox adapter for Kit 7 (Portfolio Lending Agent).
@@ -29,6 +30,9 @@ const API = {
   chargeById: (id: string) => `/api/v1/charges/${id}`,
   charges: "/api/v1/charges",
   report: "/api/v1/platform_reports/create",
+  reportById: (id: string) => `/api/v1/platform_reports/${id}`,
+  fxRate: "/api/v1/fx/rates/current",
+  convert: "/api/v1/fx/conversions/create",
 };
 
 export interface AirwallexConfig {
@@ -44,6 +48,8 @@ export interface AirwallexConfig {
   collectReason: string;
   /** Optional borrower acct_ -> global account id, to skip the lookup. */
   globalAccounts?: Record<string, string>;
+  /** When set, transfer and charge outcomes arrive by signed webhook; polling becomes the slow fallback. */
+  webhooks?: WebhookHub;
 }
 
 export class AirwallexError extends Error {
@@ -76,6 +82,11 @@ export class AirwallexBank implements BankAdapter {
   private staged = new Set<string>();
 
   constructor(private cfg: AirwallexConfig) {}
+
+  /** Attach a webhook listener after construction (the CLI starts it once it knows the port). */
+  useWebhooks(hub: WebhookHub) {
+    this.cfg.webhooks = hub;
+  }
 
   static fromEnv(): AirwallexBank {
     const need = (k: string) => {
@@ -151,9 +162,9 @@ export class AirwallexBank implements BankAdapter {
 
   // ---------- BankAdapter ----------
 
-  async getBalance(accountId: string): Promise<Cents> {
+  async getBalance(accountId: string, currency = this.cfg.currency): Promise<Cents> {
     const rows = await this.call<{ currency: string; available_amount: number }[]>(API.balances, { onBehalfOf: accountId });
-    return toCents(rows.find((r) => r.currency === this.cfg.currency)?.available_amount ?? 0);
+    return toCents(rows.find((r) => r.currency === currency)?.available_amount ?? 0);
   }
 
   async transfer(req: TransferRequest): Promise<Transfer> {
@@ -161,8 +172,8 @@ export class AirwallexBank implements BankAdapter {
     const rid = requestId(this.cfg.runId, req.idempotencyKey);
     const body =
       kind === "disburse"
-        ? { request_id: rid, amount: toMajor(req.amount), currency: this.cfg.currency, destination: req.toAccountId, reason: this.cfg.disburseReason, reference: req.reference.slice(0, 140) }
-        : { request_id: rid, amount: toMajor(req.amount), currency: this.cfg.currency, source: req.fromAccountId, reason: this.cfg.collectReason, reference: req.reference.slice(0, 140) };
+        ? { request_id: rid, amount: toMajor(req.amount), currency: req.currency ?? this.cfg.currency, destination: req.toAccountId, reason: this.cfg.disburseReason, reference: req.reference.slice(0, 140) }
+        : { request_id: rid, amount: toMajor(req.amount), currency: req.currency ?? this.cfg.currency, source: req.fromAccountId, reason: this.cfg.collectReason, reference: req.reference.slice(0, 140) };
 
     let id: string;
     try {
@@ -185,11 +196,62 @@ export class AirwallexBank implements BankAdapter {
   }
 
   /** Sandbox only: customer revenue lands in the borrower's global account. */
-  async stageRevenue(accountId: string, amount: Cents, idempotencyKey: string): Promise<void> {
-    if (this.staged.has(idempotencyKey)) return; // the deposit simulation takes no request_id
-    const globalAccountId = await this.globalAccountFor(accountId);
+  async stageRevenue(accountId: string, amount: Cents, idempotencyKey: string, currency = this.cfg.currency): Promise<void> {
+    if (this.staged.has(idempotencyKey) || this.stagedStore?.has(idempotencyKey)) return; // the deposit simulation takes no request_id
+    const globalAccountId = await this.globalAccountFor(accountId, currency);
     await this.call(API.deposit, { onBehalfOf: accountId, body: { global_account_id: globalAccountId, amount: toMajor(amount), payer_name: "Customer revenue" } });
     this.staged.add(idempotencyKey);
+    this.stagedStore?.add(idempotencyKey);
+  }
+
+  /**
+   * Deposit simulations cannot be deduplicated by Airwallex, so remember what was staged on disk.
+   * Re-running the same AIRWALLEX_RUN_ID after a crash then never deposits the same week twice.
+   */
+  stagedStore?: { has(key: string): boolean; add(key: string): void };
+
+  async fxRate(sell: string, buy: string): Promise<number> {
+    if (sell === buy) return 1;
+    // Quote a fixed sell amount and derive the rate from the amounts, so the direction of `rate` never matters.
+    const q = await this.call<{ rate?: number; rate_details?: { buy_amount?: number; sell_amount?: number }[] }>(
+      `${API.fxRate}?sell_currency=${sell}&buy_currency=${buy}&sell_amount=10000`,
+    );
+    const d = q.rate_details?.find((x) => x.buy_amount && x.sell_amount);
+    const rate = d ? d.buy_amount! / d.sell_amount! : q.rate;
+    if (!rate || !Number.isFinite(rate)) throw new Error(`no ${sell}/${buy} rate in quote`);
+    return rate;
+  }
+
+  async convert(req: ConversionRequest): Promise<Conversion> {
+    const rid = requestId(this.cfg.runId, req.idempotencyKey);
+    const c = await this.call<{ conversion_id?: string; id?: string; buy_amount: number; sell_amount: number; client_rate?: number }>(API.convert, {
+      onBehalfOf: req.accountId,
+      body: { request_id: rid, sell_currency: req.sellCurrency, buy_currency: req.buyCurrency, sell_amount: String(toMajor(req.sellAmount)) },
+    });
+    const buyAmount = toCents(c.buy_amount);
+    return { id: c.conversion_id ?? c.id ?? rid, sellAmount: toCents(c.sell_amount), buyAmount, rate: c.client_rate ?? buyAmount / req.sellAmount };
+  }
+
+  /**
+   * The bank's own view of every wallet: request a BALANCE_REPORT, wait for it, download the CSV
+   * (the link lives for one minute) and parse it.
+   */
+  async balanceSnapshot(timeoutMs = 180_000): Promise<BalanceSnapshot> {
+    const created = await this.createBalanceReport();
+    if (!created.id) throw new Error("BALANCE_REPORT returned no id");
+    const started = Date.now();
+    for (;;) {
+      const r = await this.call<{ status?: string; download_url?: string; failed_reason?: string }>(API.reportById(created.id));
+      const status = (r.status ?? "").toUpperCase();
+      if (status === "FAILED") throw new Error(`BALANCE_REPORT failed: ${r.failed_reason ?? "no reason given"}`);
+      if (status === "COMPLETED" && r.download_url) {
+        const res = await fetch(r.download_url);
+        if (!res.ok) throw new Error(`report download failed (${res.status})`);
+        return { reportId: created.id, rows: parseBalanceCsv(await res.text()) };
+      }
+      if (Date.now() - started > timeoutMs) throw new Error(`BALANCE_REPORT ${created.id} still ${status || "pending"} after ${timeoutMs / 1000}s`);
+      await sleep(3_000);
+    }
   }
 
   /** Portfolio snapshot for reconciliation (Kit 7). Download the file within 60 seconds of the link appearing. */
@@ -204,36 +266,52 @@ export class AirwallexBank implements BankAdapter {
 
   private async waitForTerminal(id: string, req: TransferRequest): Promise<Transfer> {
     const started = Date.now();
+    const hub = this.cfg.webhooks;
+    // With webhooks the signed event is the primary signal; a slow poll stays as the safety net.
+    const pollEvery = hub ? 5_000 : 1_000;
+    const event = hub?.waitFor(id);
     for (;;) {
       const t = await this.getTransfer(id);
-      if (t.status !== "pending") return { ...t, idempotencyKey: req.idempotencyKey };
-      if (Date.now() - started > 60_000) return { ...t, idempotencyKey: req.idempotencyKey };
-      await sleep(1_000);
+      if (t.status !== "pending") return { ...t, idempotencyKey: req.idempotencyKey, confirmedBy: "poll" };
+      if (Date.now() - started > 90_000) return { ...t, idempotencyKey: req.idempotencyKey, confirmedBy: "poll" };
+      const heard = event ? await Promise.race([event, sleep(pollEvery).then(() => undefined)]) : (await sleep(pollEvery), undefined);
+      if (heard && heard !== "pending") {
+        // Trust but verify: read the object back so the amount and status come from the API, not the event body.
+        const confirmed = await this.getTransfer(id);
+        if (confirmed.status !== "pending") return { ...confirmed, idempotencyKey: req.idempotencyKey, confirmedBy: "webhook" };
+      }
     }
   }
 
   private async findByRequestId(kind: Kind, rid: string): Promise<string | undefined> {
-    try {
-      // VERIFY: whether the list endpoints filter by request_id; we filter client-side either way.
-      const page = await this.call<{ items?: { id: string; request_id?: string }[] }>(
-        `${kind === "disburse" ? API.disbursements : API.charges}?request_id=${rid}&page_size=100`,
-      );
-      return page.items?.find((i) => i.request_id === rid)?.id;
-    } catch {
-      return undefined;
+    // Whether the list endpoints filter by request_id is undocumented (asked Airwallex), so filter
+    // client-side and walk a few pages: a recent transfer is near the front of the list.
+    for (let page = 0; page < 5; page++) {
+      try {
+        const res = await this.call<{ items?: { id: string; request_id?: string }[]; has_more?: boolean }>(
+          `${kind === "disburse" ? API.disbursements : API.charges}?request_id=${rid}&page_num=${page}&page_size=100`,
+        );
+        const hit = res.items?.find((i) => i.request_id === rid)?.id;
+        if (hit) return hit;
+        if (!res.has_more) return undefined;
+      } catch {
+        return undefined;
+      }
     }
+    return undefined;
   }
 
-  private async globalAccountFor(accountId: string): Promise<string> {
-    const known = this.cfg.globalAccounts?.[accountId];
+  private async globalAccountFor(accountId: string, currency = this.cfg.currency): Promise<string> {
+    const known = this.cfg.globalAccounts?.[currency === this.cfg.currency ? accountId : `${accountId}:${currency}`];
     if (known) return known;
     const list = await this.call<{ items?: { id: string; currency?: string; required_features?: { currency: string }[] }[] }>(API.globalAccounts, {
       onBehalfOf: accountId,
     });
     const match =
-      list.items?.find((g) => g.currency === this.cfg.currency || g.required_features?.some((f) => f.currency === this.cfg.currency)) ?? list.items?.[0];
-    if (!match) throw new Error(`no global account for ${accountId}; run npm run sandbox:setup`);
-    (this.cfg.globalAccounts ??= {})[accountId] = match.id;
+      list.items?.find((g) => g.currency === currency || g.required_features?.some((f) => f.currency === currency)) ??
+      (currency === this.cfg.currency ? list.items?.[0] : undefined);
+    if (!match) throw new Error(`no ${currency} global account for ${accountId}; run npm run sandbox:setup${currency === this.cfg.currency ? "" : " -- --fx"}`);
+    (this.cfg.globalAccounts ??= {})[currency === this.cfg.currency ? accountId : `${accountId}:${currency}`] = match.id;
     return match.id;
   }
 }
@@ -243,4 +321,19 @@ function mapStatus(s: string): TransferStatus {
   if (v === "SETTLED" || v === "PAID" || v === "SUCCEEDED") return "settled";
   if (["FAILED", "CANCELLED", "REJECTED", "RETURNED"].includes(v)) return "failed";
   return "pending"; // NEW, PROCESSING, PENDING, SENT ...
+}
+
+/** Parses Airwallex's BALANCE_REPORT CSV (account_id, currency, available_balance, total_balance, ...). */
+export function parseBalanceCsv(csv: string): BalanceRow[] {
+  const lines = csv.replace(/^\uFEFF/, "").split(/\r?\n/).filter((l) => l.trim());
+  if (!lines.length) return [];
+  const split = (l: string) => l.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
+  const head = split(lines[0]!).map((h) => h.toLowerCase());
+  const col = (name: string) => head.indexOf(name);
+  const [acc, ccy, avail, total] = [col("account_id"), col("currency"), col("available_balance"), col("total_balance")];
+  if (acc < 0 || ccy < 0 || avail < 0) throw new Error(`unexpected BALANCE_REPORT columns: ${head.join(", ")}`);
+  return lines.slice(1).map((l) => {
+    const c = split(l);
+    return { accountId: c[acc]!, currency: c[ccy]!, available: toCents(c[avail]!), total: toCents(c[total >= 0 ? total : avail]!) };
+  });
 }

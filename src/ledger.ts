@@ -12,6 +12,10 @@ export interface Receipt {
   status: Transfer["status"];
   attempts: number;
   week: number;
+  /** How the bank's final status was learned. */
+  confirmedBy?: "webhook" | "poll";
+  /** Set when the borrower repaid in another currency: what was charged, and the conversion into USD. */
+  fx?: { currency: string; localAmount: Cents; rate: number; conversionId: string };
 }
 
 export interface Receivable {
@@ -20,6 +24,8 @@ export interface Receivable {
   advanceId: string;
   borrowerId: string;
   amount: Cents;
+  /** Currency of `amount` and `collected` (the borrower's). Omitted = USD. */
+  currency?: string;
   /** wallet-short: the borrower wallet could not cover the charge. late-payment: customer money had not settled yet. */
   reason: "wallet-short" | "late-payment";
   collected: Cents;

@@ -1,6 +1,7 @@
 import type { Advance, Borrower, Cents } from "../domain.js";
 import type { WeekReport } from "../agent/lending-agent.js";
 import type { DecisionRecord, Ledger, Receipt } from "../ledger.js";
+import type { PortfolioCheck } from "../reconcile/portfolio.js";
 
 /**
  * A finished run, saved for the website's Sandbox run page.
@@ -15,7 +16,7 @@ export interface RunRecord {
   finishedAt: string;
   currency: string;
   fund: { size: Cents; reserveFloor: Cents; openingBalance: Cents };
-  borrowers: Pick<Borrower, "id" | "name" | "accountId">[];
+  borrowers: Pick<Borrower, "id" | "name" | "accountId" | "currency">[];
   weeks: WeekReport[];
   movements: (Receipt & { requestId?: string })[];
   receivables: Ledger["receivables"];
@@ -26,6 +27,12 @@ export interface RunRecord {
   reconciledEveryWeek: boolean;
   /** Airwallex BALANCE_REPORT requested at the end of a sandbox run: the bank's own portfolio snapshot. */
   balanceReport?: BalanceReportRef;
+  /** Every wallet checked three ways at the end of the run. */
+  portfolio?: PortfolioCheck;
+  /** How human approvals were collected: auto (demo), terminal or slack. */
+  approvals?: string;
+  /** Signed Airwallex webhook deliveries during the run. */
+  webhooks?: { accepted: number; rejected: number; duplicates: number };
 }
 
 export interface BalanceReportRef {
@@ -46,6 +53,9 @@ export function buildRunRecord(args: {
   reports: WeekReport[];
   requestIdFor?: (idempotencyKey: string) => string;
   balanceReport?: BalanceReportRef;
+  portfolio?: PortfolioCheck;
+  approvals?: string;
+  webhooks?: RunRecord["webhooks"];
 }): RunRecord {
   const { ledger, reports } = args;
   return {
@@ -56,7 +66,7 @@ export function buildRunRecord(args: {
     finishedAt: new Date().toISOString(),
     currency: "USD",
     fund: { size: args.fundSize, reserveFloor: args.reserveFloor, openingBalance: ledger.openingPlatformBalance },
-    borrowers: args.borrowers.map(({ id, name, accountId }) => ({ id, name, accountId })),
+    borrowers: args.borrowers.map(({ id, name, accountId, currency }) => ({ id, name, accountId, ...(currency && { currency }) })),
     weeks: reports,
     movements: ledger.receipts.map((r) => ({ ...r, requestId: args.requestIdFor?.(r.idempotencyKey) })),
     receivables: ledger.receivables,
@@ -66,5 +76,8 @@ export function buildRunRecord(args: {
     floorHeldEveryWeek: reports.every((r) => r.floorHeld),
     reconciledEveryWeek: reports.every((r) => r.reconciled),
     ...(args.balanceReport && { balanceReport: args.balanceReport }),
+    ...(args.portfolio && { portfolio: args.portfolio }),
+    ...(args.approvals && { approvals: args.approvals }),
+    ...(args.webhooks && { webhooks: args.webhooks }),
   };
 }

@@ -1,4 +1,4 @@
-import type { Cents } from "./domain.js";
+import { PLATFORM_CURRENCY, type Cents } from "./domain.js";
 import type { BankAdapter } from "./bank/types.js";
 import { assertFloor, type PolicyConfig } from "./policy/engine.js";
 import type { Ledger, MovementKind, Receipt } from "./ledger.js";
@@ -7,7 +7,9 @@ export interface MoveIntent {
   kind: MovementKind;
   borrowerId: string;
   borrowerAccountId: string;
+  /** In `currency` (the borrower's for a collection). Disbursements are always in the platform currency. */
   amount: Cents;
+  currency?: string;
   /** Deterministic, e.g. `collect:adv_1:w6`. Same intent => same key, forever. */
   idempotencyKey: string;
   reference: string;
@@ -37,6 +39,8 @@ export class Executor {
     const from = outflow ? this.platformAccountId : intent.borrowerAccountId;
     const to = outflow ? intent.borrowerAccountId : this.platformAccountId;
 
+    const foreign = !!intent.currency && intent.currency !== PLATFORM_CURRENCY;
+    if (foreign && (outflow || !this.bank.convert)) throw new Error(`${intent.kind} in ${intent.currency} is not supported by ${this.bank.name}`);
     if (outflow) assertFloor((await this.bank.getBalance(this.platformAccountId)) - intent.amount, this.cfg);
 
     let lastErr: unknown;
@@ -48,6 +52,7 @@ export class Executor {
           amount: intent.amount,
           idempotencyKey: intent.idempotencyKey,
           reference: intent.reference,
+          currency: foreign ? intent.currency : undefined,
         });
         const confirmed = await this.bank.getTransfer(t.id);
         const receipt: Receipt = {
@@ -59,7 +64,21 @@ export class Executor {
           status: confirmed.status,
           attempts: attempt,
           week: intent.week,
+          confirmedBy: t.confirmedBy ?? confirmed.confirmedBy,
         };
+        if (foreign && confirmed.status === "settled") {
+          // The repayment landed in the platform's foreign wallet: convert it so the book stays in one currency.
+          // Its own idempotency key, so a retry after a lost response converts once.
+          const c = await this.bank.convert!({
+            accountId: this.platformAccountId,
+            sellCurrency: intent.currency!,
+            buyCurrency: PLATFORM_CURRENCY,
+            sellAmount: intent.amount,
+            idempotencyKey: `fx:${intent.idempotencyKey}`,
+          });
+          receipt.amount = c.buyAmount;
+          receipt.fx = { currency: intent.currency!, localAmount: intent.amount, rate: c.rate, conversionId: c.id };
+        }
         this.ledger.receipts.push(receipt);
         if (attempt > 1) {
           this.ledger.log(

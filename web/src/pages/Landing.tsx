@@ -2,9 +2,9 @@ import { Link } from "react-router-dom";
 import { CashChart } from "../components/CashChart";
 import { OptionBars } from "../components/OptionBars";
 import { Sparkline } from "../components/Sparkline";
-import { TierBadge } from "../components/Status";
+import { Check, TierBadge } from "../components/Status";
 import { ThemeToggle, Wordmark } from "../components/Brand";
-import { borrowerSector, money, moneyCompact, optionLabel, pct } from "../lib/format";
+import { borrowerSector, money, moneyCompact, moneyIn, optionLabel, pct } from "../lib/format";
 import { useReveal } from "../lib/hooks";
 import { runDate, useLatestRun, type LatestRun } from "../lib/run";
 import { useDemoRun, type RunResult } from "../lib/sim";
@@ -21,6 +21,7 @@ export function Landing() {
         <Pipeline run={run} />
         <HardCase run={run} />
         <LateMoney run={run} />
+        <Operations run={run} />
         <Portfolio run={run} />
         <Guarantees run={run} />
         <Closing />
@@ -39,7 +40,7 @@ function Nav() {
           <a href="#how">How it decides</a>
           <a href="#hard-case">The hard case</a>
           <a href="#late-money">Late money</a>
-          <a href="#guarantees">Guarantees</a>
+          <a href="#operations">Operations</a>
           <Link to="/run">Live run</Link>
         </nav>
         <div className="nav-actions">
@@ -202,9 +203,26 @@ function LiveProof({ live }: { live: LatestRun }) {
               </div>
             </div>
           )}
-          <p className="proof-note">
-            {run.reconciledEveryWeek ? "Ledger matched the bank balance every week." : "Ledger checked against the bank every week."} Every id is the one Airwallex returned.
-          </p>
+          <ul className="proof-checks">
+            <li>
+              <Check size={12} /> {run.reconciledEveryWeek ? "Ledger matched the bank every week" : "Ledger checked against the bank every week"}
+            </li>
+            {run.portfolio?.allMatch && (
+              <li>
+                <Check size={12} /> Every wallet matched {run.portfolio.reportId ? "the bank's BALANCE_REPORT" : "the live balance API"}
+              </li>
+            )}
+            {run.decisions.some((d) => d.decidedBy === "claude") && (
+              <li>
+                <Check size={12} /> Credit decisions made by Claude, within policy
+              </li>
+            )}
+            {(run.webhooks?.accepted ?? 0) > 0 && (
+              <li>
+                <Check size={12} /> {run.webhooks!.accepted} signed webhooks verified
+              </li>
+            )}
+          </ul>
         </>
       ) : (
         <ul className="proof-rails">
@@ -424,6 +442,141 @@ function LateMoney({ run }: { run: RunResult | null }) {
   );
 }
 
+function Operations({ run }: { run: RunResult | null }) {
+  const fx = run?.events.find((e) => e.text.includes("converted to"));
+  const fxParts = fx?.text.match(/collected (S\$[\d,]+), converted to (\$[\d,]+) at ([\d.]+)/);
+  const wallets = run?.portfolio.rows ?? [];
+  return (
+    <section className="section" id="operations">
+      <div className="container">
+        <Reveal className="section-head">
+          <p className="eyebrow">Built for real operations</p>
+          <h2 className="h2">A credit desk, not a demo loop.</h2>
+          <p className="section-lede">
+            The parts a platform needs before it lets an agent near real money: a model that explains, people who approve where they already work, events the bank
+            signs, more than one currency, and a books-to-bank check of every wallet.
+          </p>
+        </Reveal>
+        <div className="ops">
+          <Reveal className="card op op-wide">
+            <div className="op-copy">
+              <span className="op-tag">Human in the loop</span>
+              <h3>Approvals land in Slack.</h3>
+              <p>
+                Advances over $20K and every reallocation go to your team's channel with the options and Claude's memo. The buttons open a confirmation page, so a
+                link preview can never approve anything, and silence after 30 minutes means no.
+              </p>
+            </div>
+            <div className="slack" aria-label="Example Slack approval message">
+              <div className="slack-head">
+                <span className="slack-app">K</span>
+                <strong>Keel</strong>
+                <span className="slack-badge">APP</span>
+                <span className="muted">9:41 AM</span>
+              </div>
+              <div className="slack-title">Approval needed · week 5</div>
+              <div className="slack-body">
+                <strong>Reallocate capital: $26,000 to Nimbus Apparel</strong>
+                <br />
+                Moves $3,717 from another borrower's unpaid promise.
+              </div>
+              <pre className="slack-code">{`✗ Fund in full   $26,000 · cash after $26,284 (breaches floor)
+▶ Reallocate     $26,000 · cash after $30,000
+• Fund partially $22,200 · cash after $30,084`}</pre>
+              <div className="slack-actions">
+                <span className="slack-btn slack-primary">Approve</span>
+                <span className="slack-btn slack-danger">Reject</span>
+              </div>
+            </div>
+          </Reveal>
+          <Reveal className="card op">
+            <span className="op-tag">Model</span>
+            <h3>Claude is the credit officer.</h3>
+            <p>It chooses among the options policy marked feasible and writes the memo a risk committee reads. It never names an amount and never touches the bank.</p>
+            <div className="artifact">
+              <div className="artifact-row">
+                <span className="muted">model</span> claude-opus-5-5
+              </div>
+              <div className="artifact-row">
+                <span className="muted">output</span> JSON schema · kind + memo
+              </div>
+              <div className="artifact-row">
+                <span className="muted">guardrail</span> feasible options only
+              </div>
+            </div>
+          </Reveal>
+          <Reveal className="card op">
+            <span className="op-tag">Multi-currency</span>
+            <h3>Kopi sells in SGD.</h3>
+            <p>Repayments are charged in the borrower's own currency and converted through the bank's FX into the fund's USD, so health and the reserve floor stay on one scale.</p>
+            <div className="artifact">
+              <div className="artifact-row">
+                <span className="muted">charged</span> {fxParts?.[1] ?? "S$1,023"}
+              </div>
+              <div className="artifact-row">
+                <span className="muted">converted</span> {fxParts?.[2] ?? "$758"} @ {fxParts?.[3] ?? "0.7403"}
+              </div>
+              <div className="artifact-row">
+                <span className="muted">api</span> fx/conversions/create
+              </div>
+            </div>
+          </Reveal>
+          <Reveal className="card op">
+            <span className="op-tag">Events</span>
+            <h3>Signed webhooks, then a read-back.</h3>
+            <p>Transfer and charge outcomes arrive as Airwallex webhooks, verified by HMAC signature and timestamp. Keel still reads each one back before booking it.</p>
+            <div className="artifact">
+              <div className="artifact-row">
+                <span className="muted">event</span> charge.settled
+              </div>
+              <div className="artifact-row">
+                <span className="muted">signature</span> HMAC-SHA256 ✓
+              </div>
+              <div className="artifact-row">
+                <span className="muted">replay</span> ignored, once only
+              </div>
+            </div>
+          </Reveal>
+          <Reveal className="card op op-wide">
+            <div className="op-copy">
+              <span className="op-tag">Reconciliation</span>
+              <h3>Every wallet, three ways.</h3>
+              <p>
+                After the run Keel downloads the bank's own BALANCE_REPORT and checks every wallet it touched, platform and borrowers in every currency, against its
+                ledger and the live balance API.
+              </p>
+            </div>
+            <div className="table-wrap">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>Wallet</th>
+                    <th className="r">Ledger</th>
+                    <th className="r">Bank report</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {wallets.map((w) => (
+                    <tr key={`${w.accountId}-${w.currency}`}>
+                      <td>
+                        {w.label} <span className="muted">{w.currency}</span>
+                      </td>
+                      <td className="r num">{moneyIn(w.expected, w.currency)}</td>
+                      <td className="r num">{w.report === undefined ? "—" : moneyIn(w.report, w.currency)}</td>
+                      <td>{w.match ? <span className="pill pill-good">Matches</span> : <span className="pill pill-critical">Mismatch</span>}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Reveal>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function Portfolio({ run }: { run: RunResult | null }) {
   const end = run?.snaps.at(-1);
   return (
@@ -473,8 +626,8 @@ function Guarantees({ run }: { run: RunResult | null }) {
   const items = [
     { big: "0", unit: "floor breaches", text: "Every test run checks 2,000 random portfolios: no option the engine approves ever leaves cash below the floor." },
     { big: "1×", unit: "per transfer", text: "Each money movement has a fixed idempotency key. Retrying after a lost response returns the original transfer." },
-    { big: `${reconciled}/${weeks}`, unit: "weeks reconciled", text: "The agent's own ledger is checked against the bank balance at the end of every week." },
-    { big: "$20K", unit: "approval line", text: "Advances above $20K, and any reallocation of capital, wait for a person to approve them." },
+    { big: `${reconciled}/${weeks}`, unit: "weeks reconciled", text: "The ledger is checked against the bank every week, and every wallet against the bank's own report at the end." },
+    { big: "$20K", unit: "approval line", text: "Advances above $20K, and any reallocation of capital, wait for a person: in the console, or in Slack." },
   ];
   return (
     <section className="section section-alt" id="guarantees">

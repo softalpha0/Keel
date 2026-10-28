@@ -26,6 +26,7 @@ Airwallex Agentic Banking Hackathon 2026 · **Kit 7: Portfolio Lending Agent (Dy
 - [The decision engine](#the-decision-engine)
 - [One transfer, never two](#one-transfer-never-two)
 - [Underpayments, late money and old promises](#underpayments-late-money-and-old-promises)
+- [Built for real operations](#built-for-real-operations)
 - [What the model does, and what it never does](#what-the-model-does-and-what-it-never-does)
 - [Guarantees](#guarantees)
 - [The verified sandbox run](#the-verified-sandbox-run)
@@ -53,11 +54,12 @@ Every simulated week, for every borrower, Keel:
 | Step | What happens | Airwallex |
 | --- | --- | --- |
 | **Observe** | Records the week's sales and what actually settled | Deposit simulation into each borrower's Global Account |
-| **Collect** | Takes the revenue share of money that has landed. A gap becomes a receivable, never an overdraft | `charges/create` with `x-on-behalf-of` |
+| **Collect** | Takes the revenue share of money that has landed, in the borrower's own currency, and converts it to USD. A gap becomes a receivable, never an overdraft | `charges/create` with `x-on-behalf-of`, `fx/conversions/create` |
 | **Review health** | Trend, volatility and sudden drops give each borrower a tier: healthy, watch or stressed. Stressed freezes new credit | — |
 | **Fund promises** | Re-decides each pending advance against *today's* cash and *today's* borrower before paying | `connected_account_transfers/create` |
-| **Decide requests** | Builds every way to answer (full, partial, delay, reallocate, decline), strikes anything that breaches the floor, scores the rest | `connected_account_transfers/create` |
-| **Reconcile** | Checks its own ledger against the bank balance | `balances/current`, then `BALANCE_REPORT` at the end |
+| **Decide requests** | Builds every way to answer (full, partial, delay, reallocate, decline), strikes anything that breaches the floor; Claude picks among the rest and writes the memo; large or reallocating calls go to a person in Slack | `connected_account_transfers/create` |
+| **Confirm** | Learns each transfer's outcome from a signed webhook, then reads it back | Webhooks `connected_account_transfer.*`, `charge.*` |
+| **Reconcile** | Checks its ledger against the bank every week, and at the end every wallet against the bank's own report | `balances/current`, `platform_reports` (`BALANCE_REPORT`) |
 
 The three outcomes a borrower can get:
 
@@ -113,13 +115,20 @@ flowchart TB
     EX --> LED
   end
   subgraph Banks["BankAdapter"]
-    MOCK[bank/mock<br/>in-memory, fault injection]
-    AWX[bank/airwallex<br/>sandbox REST]
+    MOCK[bank/mock<br/>in-memory, multi-currency, fault injection]
+    AWX[bank/airwallex<br/>sandbox REST + FX + reports]
+  end
+  subgraph Ops["Callbacks (server/local.ts)"]
+    WH[bank/webhooks<br/>signed Airwallex events]
+    AP[approvals<br/>Slack · terminal]
   end
   CO --> AG
   EX --> MOCK
   EX --> AWX
+  AWX -.waits on.-> WH
+  AG -.asks.-> AP
   CLI[cli.ts] --> AG
+  CLI --> REC[reconcile/portfolio<br/>every wallet, three ways]
   CLI -->|writes| JSON[(runs/latest.json<br/>evidence/*.json)]
   JSON --> RP
 ```
@@ -197,6 +206,56 @@ stateDiagram-v2
   Cleared --> [*]
 ```
 
+## Built for real operations
+
+Four things a platform needs before it lets an agent near real money.
+
+### Approvals in Slack
+
+`npm run demo:sandbox -- --approve slack` sends every decision that needs a person (over $20K, or any reallocation) to a Slack channel through an incoming webhook: the options, the one Keel recommends, and the credit memo, with **Approve** and **Reject** buttons.
+
+```mermaid
+sequenceDiagram
+  participant K as Keel
+  participant S as Slack channel
+  participant O as Operator
+  K->>S: Approval needed · week 5 · Reallocate $26,000 to Nimbus (options + memo)
+  O->>K: opens Approve link → confirmation page (GET changes nothing)
+  O->>K: confirms (POST with one-time token)
+  K->>K: executes, then posts "✅ Approved in Slack"
+  Note over K,S: No answer in 30 minutes = rejected. Wrong or reused token = 404.
+```
+
+The buttons open a confirmation page instead of deciding on click, so link previews and crawlers can never approve anything. `--approve terminal` asks in the terminal instead; the default in the demo is automatic approval.
+
+### Signed webhooks
+
+With `AIRWALLEX_WEBHOOK_SECRET` set, Keel listens on `/webhooks/airwallex` for `connected_account_transfer.*` and `charge.*`. Every delivery is verified the way Airwallex documents it, **HMAC-SHA256 over `x-timestamp` + the raw body**, compared in constant time, refused if older than five minutes, and acknowledged once if redelivered. A verified event wakes the waiting transfer, which is then **read back** from the API before it is booked; polling stays on as a slow safety net.
+
+### Multi-currency borrowers
+
+Kopi Roasters is a Singapore roaster: it sells in **SGD**. Keel judges its health in USD at the week's rate, charges its repayment share in SGD from its SGD wallet, and converts it on the platform with `fx/conversions/create` (its own idempotency key, so a retried charge converts once). The fund, the floor and the ledger stay in USD.
+
+```
+W4  Kopi Roasters: collected S$1,023, converted to $758 at 0.7403 (conv_3)
+```
+
+On the simulated bank this is on by default. On the sandbox it is opt-in: `npm run sandbox:setup -- --fx` opens an SGD Global Account for Kopi, then set `KEEL_FX=1`.
+
+### Every wallet, three ways
+
+At the end of every run Keel requests Airwallex's **BALANCE_REPORT**, waits for it, downloads the CSV inside its one-minute window, and checks every wallet it touched (the platform, and each borrower in every currency) against **its own ledger**, the **live balance API**, and **the bank's report**:
+
+```
+✓ Platform USD         ledger       $46,495  live       $46,495  report  $46,495
+✓ Kopi Roasters SGD    ledger      S$89,297  live      S$89,297  report S$89,297
+✓ Kopi Roasters USD    ledger       $22,000  live       $22,000  report  $22,000
+✓ Nimbus Apparel USD   ledger      $125,831  live      $125,831  report $125,831
+✓ Ledgerly SaaS USD    ledger       $99,857  live       $99,857  report  $99,857
+```
+
+A borrower wallet should hold its opening balance + customer revenue + advances received − repayments charged. Any difference is printed, saved in the run record and flagged on the Sandbox run page for a person to look at.
+
 ## What the model does, and what it never does
 
 | The model may | The model may not |
@@ -218,7 +277,10 @@ stateDiagram-v2
 | Late money is not read as distress | Scenario test: Ledgerly stays healthy and its receivable clears in week 7 |
 | Promises are re-checked before payment | Scenario test: Kopi's pending advance is withdrawn in week 6 |
 | The model can't override policy | Rogue-advisor test |
-| Advances over $20K and all reallocations need a human | Approval gate in `LendingAgent.choose`; the console shows the dialog |
+| Advances over $20K and all reallocations need a human | Approval gate in `LendingAgent.choose`; the console dialog, or Slack (`test/approvals.test.ts`: only the confirmation POST with the right token decides; silence rejects) |
+| Every wallet reconciles, not just the platform | `test/portfolio.test.ts`: all five wallets match three ways after the demo, and a tampered ledger is caught |
+| A foreign-currency repayment converts exactly once | `test/fx.test.ts`: a lost response on an SGD charge still yields one charge and one conversion |
+| Forged or replayed webhooks change nothing | `test/webhooks.test.ts`: wrong secret, edited body, stale timestamp and redelivery |
 
 ## The verified sandbox run
 
@@ -227,11 +289,12 @@ stateDiagram-v2
 - three borrowers as **active connected accounts**, each with a USD **Global Account** (`npm run sandbox:setup`)
 - revenue staged with **deposit simulations**
 - advances out with **`connected_account_transfers/create`**, repayments in with **`charges/create`**, both polled from `NEW` to `SETTLED`
-- a **`BALANCE_REPORT`** requested at the end, the bank's own snapshot of the portfolio
+- Claude making the credit decisions (`npm run demo:sandbox:llm`), approvals optionally in Slack
+- a **`BALANCE_REPORT`** downloaded at the end, and every wallet reconciled against it
 
 The run is written to `web/public/runs/latest.json` (shown at [`/run`](LIVE_SITE_URL/run)) and copied into [`evidence/`](evidence). Every id in those files is one Airwallex returned and can be searched in the sandbox dashboard.
 
-Result of the recorded run: floor held every week, ledger reconciled every week.
+Result of the recorded run: floor held every week, ledger reconciled every week, every wallet matched.
 
 ## Screens
 
@@ -241,6 +304,7 @@ Result of the recorded run: floor held every week, ledger reconciled every week.
 | ![Console](docs/screens/console.png) | ![Console, dark](docs/screens/console-dark.png) |
 | ![The hard case](docs/screens/hard-case.png) | ![Late money](docs/screens/late-money.png) |
 | ![Sandbox run](docs/screens/run.png) | ![Mobile](docs/screens/mobile.png) |
+| ![Built for operations: Slack approvals, Claude, SGD, webhooks](docs/screens/operations.png) | ![Every wallet reconciled three ways](docs/screens/reconciliation-dark.png) |
 
 ## Data model
 
@@ -309,7 +373,7 @@ Needs Node 20.12+ (`.nvmrc` pins 22).
 ```bash
 npm install
 npm run dev          # website at http://localhost:5173
-npm test             # 23 tests, including the 2,000-portfolio property test
+npm test             # 39 tests, including the 2,000-portfolio property test
 npm run demo         # the ten weeks in the terminal, simulated bank
 ```
 
@@ -324,8 +388,10 @@ npm run demo         # the ten weeks in the terminal, simulated bank
 | `npm run demo` | Simulated run in the terminal; add `-- --record` to save it for `/run` |
 | `npm run demo:llm` | Same, with Claude choosing and writing memos |
 | `npm run sandbox:check` | Logs in to Airwallex, lists Global Accounts, balances and borrowers |
-| `npm run sandbox:setup` | Creates the three borrowers as active connected accounts with USD Global Accounts |
+| `npm run sandbox:setup` | Creates the three borrowers as active connected accounts with USD Global Accounts; add `-- --fx` for Kopi's SGD Global Account |
 | `npm run demo:sandbox` | The ten weeks on the Airwallex sandbox; writes `runs/latest.json` and `evidence/` |
+| `npm run demo:sandbox:llm` | Same, with Claude making each credit decision and writing the memo (needs `ANTHROPIC_API_KEY`) |
+| `… -- --approve slack` | Any demo command: approvals go to Slack (needs `SLACK_WEBHOOK_URL`); `--approve terminal` asks in the terminal |
 
 ### Environment
 
@@ -337,7 +403,11 @@ Copy `.env.example` to `.env`. Only the sandbox and Claude modes need it.
 | `AIRWALLEX_BORROWER_ACCOUNTS` | sandbox | Printed by `sandbox:setup`: `kopi=acct_…,nimbus=acct_…,ledgerly=acct_…` |
 | `AIRWALLEX_GLOBAL_ACCOUNTS` | sandbox, optional | Skips the Global Account lookup |
 | `AIRWALLEX_BASE_URL` | optional | Defaults to `https://api.sandbox.airwallex.com` |
-| `ANTHROPIC_API_KEY` | `demo:llm` | |
+| `ANTHROPIC_API_KEY` | `demo:llm`, `demo:sandbox:llm` | |
+| `SLACK_WEBHOOK_URL` | `--approve slack` | Slack app → Incoming Webhooks → add to a channel |
+| `KEEL_PUBLIC_URL`, `KEEL_PORT` | optional | Where Slack links and Airwallex webhooks reach Keel. Default `http://localhost:8788`; use a tunnel (`npx cloudflared tunnel --url http://localhost:8788`) to approve from your phone or receive webhooks |
+| `AIRWALLEX_WEBHOOK_SECRET` | webhooks, optional | Airwallex → Developer → Webhooks: URL `KEEL_PUBLIC_URL/webhooks/airwallex`, events `connected_account_transfer.*`, `charge.*` |
+| `KEEL_FX` | optional | `1` runs Kopi in SGD on the sandbox (after `sandbox:setup -- --fx`) |
 
 ### Connecting the Airwallex sandbox
 
@@ -358,7 +428,11 @@ The site is static. `vercel.json` sets the build (`npm run build` → `dist/web`
 | `test/executor.test.ts` | Lost response retried once, replay is a no-op, floor checked before the bank is called | 3 |
 | `test/collections.test.ts` | Wallet-short receivables, late payment and catch-up, promise re-check | 3 |
 | `test/scenario.test.ts` | The canonical ten weeks end to end, rogue advisor, late money, withdrawn promise | 5 |
-| `test/airwallex.test.ts` | The adapter against a fake Airwallex server: units, headers, polling, lost creates, `BALANCE_REPORT` | 6 |
+| `test/airwallex.test.ts` | The adapter against a fake Airwallex server: units, headers, polling, lost creates, report download, FX quote and conversion, webhook-confirmed transfer | 9 |
+| `test/fx.test.ts` | SGD repayment converted once despite a lost response; Kopi in SGD across the demo | 3 |
+| `test/webhooks.test.ts` | Signature, tampering, stale timestamps, redelivery, event mapping | 5 |
+| `test/approvals.test.ts` | Slack message, confirmation page, token check, timeout rejects | 2 |
+| `test/portfolio.test.ts` | Every wallet three ways; a tampered ledger is caught; BALANCE_REPORT CSV parsing | 3 |
 
 CI runs typecheck, tests, the production build and a simulated ten-week run on every push.
 
@@ -374,7 +448,10 @@ src/
   agent/claude-advisor.ts
   executor.ts            the only code that moves money
   ledger.ts              book, receivables, decision log
-  bank/                  BankAdapter, MockBank, AirwallexBank
+  bank/                  BankAdapter, MockBank, AirwallexBank, signed webhooks
+  approvals/             Slack and terminal approvers, approval desk
+  reconcile/portfolio.ts every wallet: ledger vs live balance vs bank report
+  server/local.ts        callbacks: webhooks and approval links
   sandbox/               check, setup, request bodies
   sim/                   scenario, runner, run record
   cli.ts
@@ -387,8 +464,9 @@ docs/                    screenshots, video storyboard, submission text
 ## Known limitations
 
 - **Simulated revenue.** Sales are generated by the scenario and staged as deposit simulations. A production version would read real settlements from the platform.
-- **Weekly, not continuous.** Keel decides on a weekly clock. Real-time collection would hang off Airwallex webhooks.
-- **One currency.** USD only. The adapter takes a currency, but FX between borrower and platform is not modelled.
+- **Weekly, not continuous.** Keel decides on a weekly clock. Webhooks confirm money movements as they happen, but collection itself runs once a week.
+- **Callbacks need a reachable URL.** Slack approval links and Airwallex webhooks reach the machine running Keel; from outside it that means a tunnel. Slack approvals use link buttons, not a Slack app with interactivity.
+- **FX on the sandbox is opt-in.** Kopi's SGD flow runs by default on the simulated bank; on the sandbox it needs an SGD Global Account and `KEEL_FX=1`, and advances are always paid in USD.
 - **Static evidence.** The hosted site shows a recorded sandbox run; it does not call Airwallex from the browser, because that would need API keys in the client.
 - **Policy is hand-tuned.** Tier thresholds, loss rates and the capacity multiple are sensible defaults for a demo, not a calibrated credit model.
 - **Not a lending offer.** A hackathon project, not affiliated with or endorsed by Airwallex.

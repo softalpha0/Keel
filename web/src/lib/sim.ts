@@ -3,7 +3,8 @@ import type { AdvanceOption, Advance, Tier } from "../../../src/domain";
 import type { Approver, LendingAgent, WeekReport } from "../../../src/agent/lending-agent";
 import type { DecisionRecord, Ledger } from "../../../src/ledger";
 import { demoScenario, type ScenarioParams } from "../../../src/sim/scenario";
-import { createSimulation, runScenario, type Simulation } from "../../../src/sim/run";
+import { createSimulation, PLATFORM, runScenario, type Simulation } from "../../../src/sim/run";
+import { reconcilePortfolio, type PortfolioCheck } from "../../../src/reconcile/portfolio";
 
 export const TOTAL_WEEKS = 10;
 
@@ -15,6 +16,8 @@ export interface BorrowerSnap {
   revenue: number[];
   outstanding: number;
   holdbackBps: number;
+  /** Currency the borrower sells and repays in. */
+  currency: string;
 }
 
 export interface WeekSnap {
@@ -56,6 +59,7 @@ export function snapshot(agent: LendingAgent, r: WeekReport): WeekSnap {
         revenue: [...(l.revenue.get(b.id) ?? [])],
         outstanding: l.outstanding(b.id),
         holdbackBps: b.holdbackBps,
+        currency: b.currency ?? "USD",
       };
     }),
   };
@@ -67,14 +71,18 @@ export interface RunResult {
   events: Ledger["events"];
   advances: Advance[];
   fundSize: number;
+  /** End-of-run check of every wallet: ledger vs live balance vs bank report. */
+  portfolio: PortfolioCheck;
 }
 
 /** Runs the whole scenario with auto-approval. Used by the landing page. */
 export async function runToEnd(params: Partial<ScenarioParams> = {}): Promise<RunResult> {
   const snaps: WeekSnap[] = [];
   const s = demoScenario(params);
-  const { ledger } = await runScenario(s, { onWeek: (r, agent) => snaps.push(snapshot(agent, r)) });
-  return { snaps, decisions: ledger.decisions, events: ledger.events, advances: ledger.advances, fundSize: s.fundSize };
+  const run = await runScenario(s, { onWeek: (r, agent) => snaps.push(snapshot(agent, r)) });
+  const { ledger } = run;
+  const portfolio = await reconcilePortfolio({ bank: run.bank, ledger, borrowers: s.borrowers, staged: run.staged, openingWallets: run.openingWallets, platformAccountId: PLATFORM });
+  return { snaps, decisions: ledger.decisions, events: ledger.events, advances: ledger.advances, fundSize: s.fundSize, portfolio };
 }
 
 export function useDemoRun(params: Partial<ScenarioParams> = {}) {
@@ -152,7 +160,7 @@ export function useLiveSimulation(params: ScenarioParams, autoApprove: boolean) 
       collectedToDate: 0,
       reconciled: true,
       floorHeld: true,
-      borrowers: s.borrowers.map((b) => ({ id: b.id, name: b.name, tier: "new", reasons: [], revenue: [], outstanding: 0, holdbackBps: b.holdbackBps })),
+      borrowers: s.borrowers.map((b) => ({ id: b.id, name: b.name, tier: "new", reasons: [], revenue: [], outstanding: 0, holdbackBps: b.holdbackBps, currency: b.currency ?? "USD" })),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(params)]);

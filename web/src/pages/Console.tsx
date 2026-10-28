@@ -409,7 +409,10 @@ function Borrowers({ snap }: { snap: WeekSnap | null }) {
           <li key={b.id}>
             <div className="blist-top">
               <div>
-                <div className="blist-name">{b.name}</div>
+                <div className="blist-name">
+                  {b.name}
+                  {b.currency !== "USD" && <span className="pill ccy-chip">repays in {b.currency}</span>}
+                </div>
                 <div className="card-sub">{borrowerSector[b.id]}</div>
               </div>
               <TierBadge tier={b.tier} />

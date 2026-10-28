@@ -896,3 +896,13 @@
   align-items: center;
   gap: 8px 10px;
 }
+
+.run-note {
+  padding: 12px 0 2px;
+  font-size: 13px;
+}
+
+.ccy-chip {
+  margin-left: 6px;
+  vertical-align: 1px;
+}

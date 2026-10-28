@@ -93,3 +93,10 @@ export const usdGlobalAccountBody = (requestId: string) => ({
   country_code: "US",
   required_features: [{ currency: "USD", transfer_method: "LOCAL" }],
 });
+
+/** For the multi-currency demo: Kopi Roasters sells in SGD through a Singapore Global Account. */
+export const sgdGlobalAccountBody = (requestId: string) => ({
+  request_id: requestId,
+  country_code: "SG",
+  required_features: [{ currency: "SGD", transfer_method: "LOCAL" }],
+});

@@ -4,7 +4,7 @@ import type { RunRecord } from "../../../src/sim/record";
 import { ThemeToggle, Wordmark } from "../components/Brand";
 import { CashChart } from "../components/CashChart";
 import { Check, Cross } from "../components/Status";
-import { money, optionLabel } from "../lib/format";
+import { money, moneyIn, optionLabel } from "../lib/format";
 import { useLatestRun } from "../lib/run";
 import type { WeekSnap } from "../lib/sim";
 
@@ -85,6 +85,10 @@ function Run({ run }: { run: RunRecord }) {
   const out = run.movements.filter((m) => m.kind === "disburse" && m.status === "settled");
   const back = run.movements.filter((m) => m.kind === "collect" && m.status === "settled");
   const retried = run.movements.filter((m) => m.attempts > 1).length;
+  const byClaude = run.decisions.filter((d) => d.decidedBy === "claude" && d.type !== "health-review").length;
+  const decidable = run.decisions.filter((d) => d.type !== "health-review").length;
+  const viaWebhook = run.movements.filter((m) => m.confirmedBy === "webhook").length;
+  const ccy = Object.fromEntries(run.borrowers.map((b) => [b.id, b.currency ?? "USD"]));
   // Older run files predate receivable ids and catch-up; treat their rows as still open.
   const receivables = run.receivables.map((r) => ({ ...r, collected: r.collected ?? 0, reason: r.reason ?? "wallet-short" }));
   const owed = receivables.reduce((s, r) => s + r.amount - r.collected, 0);
@@ -102,6 +106,12 @@ function Run({ run }: { run: RunRecord }) {
           <span className={`pill ${run.reconciledEveryWeek ? "pill-good" : "pill-critical"}`}>
             {run.reconciledEveryWeek ? <Check size={12} /> : <Cross size={12} />} Ledger matches bank every week
           </span>
+          {run.portfolio && (
+            <span className={`pill ${run.portfolio.allMatch ? "pill-good" : "pill-critical"}`}>
+              {run.portfolio.allMatch ? <Check size={12} /> : <Cross size={12} />} Every wallet reconciled
+            </span>
+          )}
+          {byClaude > 0 && <span className="pill pill-accent">Decisions by Claude</span>}
         </div>
         <h1 className="h2">{live ? "Ten weeks on real sandbox rails." : "Ten weeks on the simulated bank."}</h1>
         <p className="muted run-meta">
@@ -141,11 +151,21 @@ function Run({ run }: { run: RunRecord }) {
             {!receivables.length ? "every repayment covered" : caughtUp ? `${money(caughtUp)} late money caught up` : `${receivables.length} receivable(s) open`}
           </div>
         </div>
-        <div className="kpi card">
-          <div className="kpi-label">Retries recovered</div>
-          <div className="kpi-value">{retried}</div>
-          <div className="kpi-note">no duplicate money movement</div>
-        </div>
+        {byClaude > 0 ? (
+          <div className="kpi card">
+            <div className="kpi-label">Decided by Claude</div>
+            <div className="kpi-value">
+              {byClaude}/{decidable}
+            </div>
+            <div className="kpi-note">within policy-feasible options only</div>
+          </div>
+        ) : (
+          <div className="kpi card">
+            <div className="kpi-label">Retries recovered</div>
+            <div className="kpi-value">{retried}</div>
+            <div className="kpi-note">no duplicate money movement</div>
+          </div>
+        )}
       </section>
 
       <section className="card panel">
@@ -192,12 +212,27 @@ function Run({ run }: { run: RunRecord }) {
                     {names[m.borrowerId] ?? m.borrowerId}
                     <div className="mono muted">{accounts[m.borrowerId]}</div>
                   </td>
-                  <td className="r num">{money(m.amount)}</td>
-                  <td className="mono">{m.transferId}</td>
+                  <td className="r num">
+                    {m.fx ? (
+                      <>
+                        {moneyIn(m.fx.localAmount, m.fx.currency)}
+                        <div className="muted">
+                          → {money(m.amount)} @ {m.fx.rate.toFixed(4)}
+                        </div>
+                      </>
+                    ) : (
+                      money(m.amount)
+                    )}
+                  </td>
+                  <td className="mono">
+                    {m.transferId}
+                    {m.fx && <div className="muted">{m.fx.conversionId}</div>}
+                  </td>
                   {live && <td className="mono muted">{m.requestId}</td>}
                   <td>
                     <span className={`pill ${m.status === "settled" ? "pill-good" : "pill-critical"}`}>{m.status === "settled" ? "Settled" : m.status}</span>
                     {m.attempts > 1 && <span className="pill">retried ×{m.attempts - 1}</span>}
+                    {m.confirmedBy === "webhook" && <span className="pill">via webhook</span>}
                   </td>
                 </tr>
               ))}
@@ -205,6 +240,49 @@ function Run({ run }: { run: RunRecord }) {
           </table>
         </div>
       </section>
+
+      {run.portfolio && (
+        <section className="card panel">
+          <div className="card-header">
+            <div>
+              <h2 className="card-title">Every wallet, three ways</h2>
+              <p className="card-sub">
+                At the end of the run each wallet Keel touched is checked against its own ledger, the live balance API{run.portfolio.reportId ? ", and the bank's own BALANCE_REPORT" : ""}.
+                {viaWebhook > 0 && ` ${viaWebhook} money movements were confirmed by signed Airwallex webhooks.`}
+              </p>
+            </div>
+          </div>
+          <div className="panel-body table-wrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Wallet</th>
+                  <th className="r">Keel's ledger</th>
+                  <th className="r">Live balance</th>
+                  <th className="r">Bank report</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {run.portfolio.rows.map((r) => (
+                  <tr key={`${r.accountId}-${r.currency}`}>
+                    <td>
+                      {r.label} <span className="pill">{r.currency}</span>
+                      <div className="mono muted">{r.accountId}</div>
+                    </td>
+                    <td className="r num">{moneyIn(r.expected - (r.label === "Platform" ? offset : 0), r.currency)}</td>
+                    <td className="r num">{moneyIn(r.live - (r.label === "Platform" ? offset : 0), r.currency)}</td>
+                    <td className="r num">{r.report === undefined ? "—" : moneyIn(r.report - (r.label === "Platform" ? offset : 0), r.currency)}</td>
+                    <td>{r.match ? <span className="pill pill-good">Matches</span> : <span className="pill pill-critical">Mismatch</span>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {run.portfolio.reportError && <p className="muted run-note">Bank report unavailable: {run.portfolio.reportError}. Checked against the live balance API.</p>}
+            {live && <p className="muted run-note">Platform figures are shown inside the ring-fenced fund; borrower wallets are their full sandbox balances.</p>}
+          </div>
+        </section>
+      )}
 
       {receivables.length > 0 && (
         <section className="card panel">
@@ -232,8 +310,8 @@ function Run({ run }: { run: RunRecord }) {
                     <td className="num">W{r.week}</td>
                     <td>{names[r.borrowerId] ?? r.borrowerId}</td>
                     <td>{r.reason === "late-payment" ? "Customer payments settled late" : "Wallet could not cover the charge"}</td>
-                    <td className="r num">{money(r.amount)}</td>
-                    <td className="r num">{money(r.collected)}</td>
+                    <td className="r num">{moneyIn(r.amount, r.currency ?? ccy[r.borrowerId])}</td>
+                    <td className="r num">{moneyIn(r.collected, r.currency ?? ccy[r.borrowerId])}</td>
                     <td>
                       {r.settledWeek ? <span className="pill pill-good">Cleared W{r.settledWeek}</span> : <span className="pill pill-warn">Open</span>}
                     </td>

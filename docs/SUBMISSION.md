@@ -17,7 +17,7 @@ Paste-ready text for each field. Replace the three URLs first.
 
 ## Short description (≈50 words)
 
-Keel is an autonomous revenue-based lending agent for platforms on Airwallex. It collects weekly revenue-share repayments, tracks borrower health, and sizes, reallocates or withdraws advances so platform cash never drops below a reserve floor. Every decision carries its options and a memo, and every transfer runs once, verified on the Airwallex sandbox.
+Keel is an autonomous revenue-based lending agent for platforms on Airwallex. It collects weekly revenue-share repayments (in each borrower's own currency), tracks borrower health, and sizes, reallocates or withdraws advances so platform cash never drops below a reserve floor. Claude makes each credit call within policy, people approve the big ones in Slack, and every wallet is reconciled against Airwallex's own balance report.
 
 ## Full description
 
@@ -32,13 +32,16 @@ Keel is an autonomous revenue-based lending agent for platforms on Airwallex. It
 - A promised advance withdrawn when the borrower no longer qualifies
 - Revenue shock: borrower marked stressed, credit frozen, repayments shrink with revenue
 - Idempotent money movement: a lost bank response is retried with the same `request_id` and settles once
-- Weekly reconciliation against the bank, plus an Airwallex `BALANCE_REPORT`
+- Multi-currency: a Singapore borrower repays in SGD, converted into the fund's USD through Airwallex FX
+- Approvals in Slack for large advances and every reallocation; silence means no
+- Signed Airwallex webhooks confirm transfers and charges, then each is read back
+- Weekly reconciliation against the bank, and at the end every wallet checked three ways: Keel's ledger, the live balance API, and Airwallex's downloaded `BALANCE_REPORT`
 
-**Airwallex APIs used.** Connected accounts (create, submit, activate) for each borrower; Global Accounts; deposit simulation for customer revenue; `connected_account_transfers` for advances; `charges` with `x-on-behalf-of` for repayments; `balances/current`; `platform_reports` (`BALANCE_REPORT`). All money calls use deterministic `request_id`s and are polled to `SETTLED`.
+**Airwallex APIs used.** Connected accounts (create, submit, activate) for each borrower; Global Accounts (USD, and SGD for the multi-currency borrower); deposit simulation for customer revenue; `connected_account_transfers` for advances; `charges` with `x-on-behalf-of` for repayments; `fx/rates/current` and `fx/conversions/create`; `balances/current`; `platform_reports` (create, retrieve, CSV download of `BALANCE_REPORT`); webhooks for `connected_account_transfer.*` and `charge.*`, HMAC-verified. All money calls use deterministic `request_id`s.
 
 **How AI is used.** "The model reads, the code decides, the API moves the money." Claude chooses among policy-feasible options only and writes the credit memo through structured output. A guardrail rejects anything else, and a deterministic rules advisor takes over if the model is unavailable. The model never calls the bank.
 
-**Built with.** TypeScript, Node, React 19, Vite, Vitest, fast-check, the Anthropic SDK, the Airwallex sandbox API, Vercel.
+**Built with.** TypeScript, Node, React 19, Vite, Vitest + fast-check (39 tests), the Anthropic SDK (Claude), Slack incoming webhooks, the Airwallex sandbox API, Vercel.
 
 ## Setup instructions (for judges)
 
@@ -47,7 +50,7 @@ No install: open the live site and press **Run the ten weeks**. To run locally:
 ```bash
 git clone https://github.com/softalpha0/Keel && cd Keel
 npm install
-npm test        # 23 tests
+npm test        # 39 tests
 npm run dev     # http://localhost:5173
 npm run demo    # the ten weeks in the terminal
 ```

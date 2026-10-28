@@ -2,6 +2,12 @@
 export const money = (cents: number) =>
   (cents < 0 ? "−$" : "$") + Math.round(Math.abs(cents) / 100).toLocaleString("en-US");
 
+const SYMBOL: Record<string, string> = { USD: "$", SGD: "S$", EUR: "€", GBP: "£", AUD: "A$", HKD: "HK$" };
+
+/** Any currency from minor units: moneyIn(108000, "SGD") -> "S$1,080" */
+export const moneyIn = (minor: number, currency = "USD") =>
+  currency === "USD" ? money(minor) : (minor < 0 ? "−" : "") + (SYMBOL[currency] ?? `${currency} `) + Math.round(Math.abs(minor) / 100).toLocaleString("en-US");
+
 /** Compact dollars for axes and tight labels: $30K, $3.7K, $1.2M */
 export const moneyCompact = (cents: number) => {
   const d = Math.abs(cents) / 100;
