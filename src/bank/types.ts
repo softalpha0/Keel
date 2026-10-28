@@ -44,6 +44,8 @@ export interface BalanceRow {
   currency: string;
   available: Cents;
   total: Cents;
+  /** When the bank last updated this line (BALANCE_REPORT's last_update), if given. */
+  lastUpdate?: string;
 }
 
 export interface BalanceSnapshot {

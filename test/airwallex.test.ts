@@ -139,7 +139,7 @@ describe("AirwallexBank against a fake sandbox", () => {
 
   it("downloads and parses the BALANCE_REPORT once it completes", async () => {
     const snap = await bank().balanceSnapshot();
-    expect(snap).toEqual({ reportId: "rpt_1", rows: [{ accountId: "acct_kopi", currency: "USD", available: 123_450, total: 123_450 }] });
+    expect(snap).toEqual({ reportId: "rpt_1", rows: [{ accountId: "acct_kopi", currency: "USD", available: 123_450, total: 123_450, lastUpdate: "2026-10-28" }] });
     expect(reportPolls).toBe(2);
   });
 

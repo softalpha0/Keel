@@ -254,6 +254,8 @@ At the end of every run Keel requests Airwallex's **BALANCE_REPORT**, waits for 
 ✓ Ledgerly SaaS USD    ledger       $99,857  live       $99,857  report  $99,857
 ```
 
+Airwallex builds the BALANCE_REPORT from data that lags the live balance (on our sandbox runs, the report showed balances from before the run began). So the live balance must equal the ledger **now**, and each report line must equal the ledger at **some point Keel can name** (before the run, or the end of a given week); a line last updated before the run began is marked stale rather than wrong. `npm run sandbox:report` re-checks the report against live balances later, once it has caught up.
+
 A borrower wallet should hold its opening balance + customer revenue + advances received − repayments charged. Any difference is printed, saved in the run record and flagged on the Sandbox run page for a person to look at.
 
 ## What the model does, and what it never does
@@ -373,7 +375,7 @@ Needs Node 20.12+ (`.nvmrc` pins 22).
 ```bash
 npm install
 npm run dev          # website at http://localhost:5173
-npm test             # 39 tests, including the 2,000-portfolio property test
+npm test             # 40 tests, including the 2,000-portfolio property test
 npm run demo         # the ten weeks in the terminal, simulated bank
 ```
 
@@ -388,6 +390,7 @@ npm run demo         # the ten weeks in the terminal, simulated bank
 | `npm run demo` | Simulated run in the terminal; add `-- --record` to save it for `/run` |
 | `npm run demo:llm` | Same, with Claude choosing and writing memos |
 | `npm run sandbox:check` | Logs in to Airwallex, lists Global Accounts, balances and borrowers |
+| `npm run sandbox:report` | Fresh BALANCE_REPORT compared with live balances now (the report lags, so run it a while after a demo) |
 | `npm run sandbox:setup` | Creates the three borrowers as active connected accounts with USD Global Accounts; add `-- --fx` for Kopi's SGD Global Account |
 | `npm run demo:sandbox` | The ten weeks on the Airwallex sandbox; writes `runs/latest.json` and `evidence/` |
 | `npm run demo:sandbox:llm` | Same, with Claude making each credit decision and writing the memo (needs `ANTHROPIC_API_KEY`) |
@@ -432,7 +435,7 @@ The site is static. `vercel.json` sets the build (`npm run build` → `dist/web`
 | `test/fx.test.ts` | SGD repayment converted once despite a lost response; Kopi in SGD across the demo | 3 |
 | `test/webhooks.test.ts` | Signature, tampering, stale timestamps, redelivery, event mapping | 5 |
 | `test/approvals.test.ts` | Slack message, confirmation page, token check, timeout rejects | 2 |
-| `test/portfolio.test.ts` | Every wallet three ways; a tampered ledger is caught; BALANCE_REPORT CSV parsing | 3 |
+| `test/portfolio.test.ts` | Every wallet three ways; a tampered ledger is caught; a lagging or stale bank report; BALANCE_REPORT CSV parsing | 4 |
 
 CI runs typecheck, tests, the production build and a simulated ten-week run on every push.
 

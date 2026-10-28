@@ -5,7 +5,7 @@ import { SlackApprover } from "./approvals/slack.js";
 import { terminalApprover } from "./approvals/terminal.js";
 import type { Approver } from "./agent/lending-agent.js";
 import { WebhookHub } from "./bank/webhooks.js";
-import { reconcilePortfolio } from "./reconcile/portfolio.js";
+import { describeAsOf, reconcilePortfolio } from "./reconcile/portfolio.js";
 import { startLocalServer } from "./server/local.js";
 import { RulesAdvisor } from "./agent/advisor.js";
 import { ClaudeAdvisor } from "./agent/claude-advisor.js";
@@ -139,11 +139,14 @@ const portfolio = await reconcilePortfolio({
   staged: run0.staged,
   openingWallets: run0.openingWallets,
   platformAccountId: bank?.platformAccountId ?? "acct_platform",
+  runStartedAt: startedAt,
 });
 for (const r of portfolio.rows) {
   const f = (c: number | undefined) => (c === undefined ? "—" : fmtIn(c, r.currency)).padStart(13);
-  console.log(`   ${r.match ? "✓" : "✗"} ${(r.label + " " + r.currency).padEnd(20)} ledger ${f(r.expected)}  live ${f(r.live)}  report ${f(r.report)}`);
+  const note = r.report === undefined ? "" : r.reportStale ? "  (bank snapshot predates this run)" : r.reportAsOf === "now" ? "" : r.reportAsOf === undefined ? "  (matches no point in the ledger)" : `  (bank snapshot = ledger ${describeAsOf(r.reportAsOf)})`;
+  console.log(`   ${r.match ? "✓" : "✗"} ${(r.label + " " + r.currency).padEnd(20)} ledger ${f(r.expected)}  live ${f(r.live)}  report ${f(r.report)}${note}`);
 }
+if (portfolio.reportLags) console.log("   Airwallex builds this report from data that lags the live balance; each line is checked against Keel's ledger at the time it reflects.");
 if (portfolio.reportError) console.warn(`   Bank report unavailable (${portfolio.reportError}); checked against the live balance API only.`);
 console.log(`   ${portfolio.allMatch ? "Every wallet matches." : "MISMATCH: see rows marked ✗."}${portfolio.reportId ? ` Report ${portfolio.reportId}.` : ""}`);
 const balanceReport: BalanceReportRef | undefined = bank

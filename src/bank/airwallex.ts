@@ -330,10 +330,16 @@ export function parseBalanceCsv(csv: string): BalanceRow[] {
   const split = (l: string) => l.split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
   const head = split(lines[0]!).map((h) => h.toLowerCase());
   const col = (name: string) => head.indexOf(name);
-  const [acc, ccy, avail, total] = [col("account_id"), col("currency"), col("available_balance"), col("total_balance")];
+  const [acc, ccy, avail, total, updated] = [col("account_id"), col("currency"), col("available_balance"), col("total_balance"), col("last_update")];
   if (acc < 0 || ccy < 0 || avail < 0) throw new Error(`unexpected BALANCE_REPORT columns: ${head.join(", ")}`);
   return lines.slice(1).map((l) => {
     const c = split(l);
-    return { accountId: c[acc]!, currency: c[ccy]!, available: toCents(c[avail]!), total: toCents(c[total >= 0 ? total : avail]!) };
+    return {
+      accountId: c[acc]!,
+      currency: c[ccy]!,
+      available: toCents(c[avail]!),
+      total: toCents(c[total >= 0 ? total : avail]!),
+      ...(updated >= 0 && c[updated] ? { lastUpdate: c[updated] } : {}),
+    };
   });
 }

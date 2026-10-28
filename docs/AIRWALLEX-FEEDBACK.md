@@ -11,5 +11,6 @@ Shared with the Airwallex team on the hackathon channel. Each item says what we 
 | 5 | It isn't documented whether the `charges` / `connected_account_transfers` list endpoints filter by `request_id`. | After an ambiguous failure Keel looks the transfer up by `request_id`, filtering client-side across up to five pages, before it ever retries. Settles once either way. |
 | 6 | `fx/rates/current` returns `rate` for a currency pair whose direction depends on the pair's convention. | Keel quotes a fixed `sell_amount` and derives the rate from `buy_amount / sell_amount`, so the direction can't be misread. |
 | 7 | The BALANCE_REPORT download link lives for one minute. | Keel downloads it in the same call that sees `COMPLETED`, then reconciles every wallet against it. |
+| 8 | A BALANCE_REPORT requested right after a run showed every borrower's balance from **before** the run, while `balances/current` already showed the new balance. | Keel checks each report line against its ledger at the point in time the line reflects (before the run, or the end of a week), marks lines last updated before the run as stale, and `npm run sandbox:report` re-checks later. Question for Airwallex: how fresh is the report's data? |
 
-Questions still open with Airwallex: items 3, 4 (is a `request_id` planned?) and 5.
+Questions still open with Airwallex: items 3, 4 (is a `request_id` planned?), 5 and 8.

@@ -6,6 +6,7 @@ import { CashChart } from "../components/CashChart";
 import { Check, Cross } from "../components/Status";
 import { money, moneyIn, optionLabel } from "../lib/format";
 import { useLatestRun } from "../lib/run";
+import { describeAsOf } from "../../../src/reconcile/portfolio";
 import type { WeekSnap } from "../lib/sim";
 
 export function RunPage() {
@@ -272,12 +273,23 @@ function Run({ run }: { run: RunRecord }) {
                     </td>
                     <td className="r num">{moneyIn(r.expected - (r.label === "Platform" ? offset : 0), r.currency)}</td>
                     <td className="r num">{moneyIn(r.live - (r.label === "Platform" ? offset : 0), r.currency)}</td>
-                    <td className="r num">{r.report === undefined ? "—" : moneyIn(r.report - (r.label === "Platform" ? offset : 0), r.currency)}</td>
+                    <td className="r num">
+                      {r.report === undefined ? "—" : moneyIn(r.report - (r.label === "Platform" ? offset : 0), r.currency)}
+                      {r.report !== undefined && r.reportAsOf !== "now" && (
+                        <div className="muted">{r.reportStale ? "snapshot predates this run" : `= ledger ${describeAsOf(r.reportAsOf)}`}</div>
+                      )}
+                    </td>
                     <td>{r.match ? <span className="pill pill-good">Matches</span> : <span className="pill pill-critical">Mismatch</span>}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            {run.portfolio.reportLags && (
+              <p className="muted run-note">
+                Airwallex builds the BALANCE_REPORT from data that lags the live balance, so each report line is checked against Keel's ledger at the moment it
+                reflects. The live balance must match the ledger now.
+              </p>
+            )}
             {run.portfolio.reportError && <p className="muted run-note">Bank report unavailable: {run.portfolio.reportError}. Checked against the live balance API.</p>}
             {live && <p className="muted run-note">Platform figures are shown inside the ring-fenced fund; borrower wallets are their full sandbox balances.</p>}
           </div>
