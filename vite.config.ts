@@ -35,13 +35,13 @@ function localApi(): Plugin {
     name: "keel-local-api",
     configureServer(server) {
       dev = server;
-      mount(server, () => server.ssrLoadModule(resolve(__dirname, "api/ask.ts")) as never);
+      mount(server, () => server.ssrLoadModule(resolve(import.meta.dirname, "api/ask.ts")) as never);
     },
     async configurePreviewServer(server) {
       const { createServer } = await import("vite");
       mount(server, async () => {
-        dev ??= await createServer({ configFile: false, root: __dirname, server: { middlewareMode: true }, appType: "custom" });
-        return dev.ssrLoadModule(resolve(__dirname, "api/ask.ts")) as never;
+        dev ??= await createServer({ configFile: false, root: import.meta.dirname, server: { middlewareMode: true }, appType: "custom" });
+        return dev.ssrLoadModule(resolve(import.meta.dirname, "api/ask.ts")) as never;
       });
     },
   };
@@ -49,7 +49,7 @@ function localApi(): Plugin {
 
 export default defineConfig(({ mode }) => {
   // Make .env (ANTHROPIC_API_KEY) visible to the local /api/ask handler. Nothing is exposed to the browser.
-  Object.assign(process.env, { ...loadEnv(mode, __dirname, ""), ...process.env });
+  Object.assign(process.env, { ...loadEnv(mode, import.meta.dirname, ""), ...process.env });
   return {
     root: "web",
     plugins: [react(), localApi()],

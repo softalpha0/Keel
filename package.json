@@ -20,7 +20,7 @@
     "runs:index": "tsx src/sandbox/index-runs.ts"
   },
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.135.0",
