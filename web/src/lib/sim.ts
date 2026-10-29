@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { AdvanceOption, Advance, Tier } from "../../../src/domain";
+import type { AdvanceOption, Advance, Borrower, Tier } from "../../../src/domain";
+import { borrowerCapacity } from "../../../src/policy/engine";
 import type { Approver, LendingAgent, WeekReport } from "../../../src/agent/lending-agent";
 import type { DecisionRecord, Ledger } from "../../../src/ledger";
 import { demoScenario, type ScenarioParams } from "../../../src/sim/scenario";
@@ -73,6 +74,12 @@ export interface RunResult {
   fundSize: number;
   /** End-of-run check of every wallet: ledger vs live balance vs bank report. */
   portfolio: PortfolioCheck;
+  /** The full book, for borrower pages and the merchant portal. */
+  ledger: Ledger;
+  borrowers: Borrower[];
+  /** What each borrower could still draw at the end of the run, after health and exposure limits. */
+  capacity: Record<string, number>;
+  approvalThreshold: number;
 }
 
 /** Runs the whole scenario with auto-approval. Used by the landing page. */
@@ -82,7 +89,25 @@ export async function runToEnd(params: Partial<ScenarioParams> = {}): Promise<Ru
   const run = await runScenario(s, { onWeek: (r, agent) => snaps.push(snapshot(agent, r)) });
   const { ledger } = run;
   const portfolio = await reconcilePortfolio({ bank: run.bank, ledger, borrowers: s.borrowers, staged: run.staged, openingWallets: run.openingWallets, platformAccountId: PLATFORM });
-  return { snaps, decisions: ledger.decisions, events: ledger.events, advances: ledger.advances, fundSize: s.fundSize, portfolio };
+  const cfg = run.agent.cfg;
+  const capacity = Object.fromEntries(
+    s.borrowers.map((b) => {
+      const sig = ledger.signals.get(b.id);
+      return [b.id, sig ? borrowerCapacity(sig, ledger.exposure(b.id), cfg) : 0];
+    }),
+  );
+  return {
+    snaps,
+    decisions: ledger.decisions,
+    events: ledger.events,
+    advances: ledger.advances,
+    fundSize: s.fundSize,
+    portfolio,
+    ledger,
+    borrowers: s.borrowers,
+    capacity,
+    approvalThreshold: cfg.approvalThreshold,
+  };
 }
 
 export function useDemoRun(params: Partial<ScenarioParams> = {}) {

@@ -1,0 +1,61 @@
+name: Daily sandbox run
+
+# Runs Keel's ten weeks against the Airwallex sandbox once a day and publishes the run,
+# so www.keel.cards/run always shows a fresh, verified run and its history.
+# Needs repository secrets (Settings -> Secrets and variables -> Actions):
+#   AIRWALLEX_CLIENT_ID, AIRWALLEX_API_KEY, AIRWALLEX_BORROWER_ACCOUNTS, AIRWALLEX_GLOBAL_ACCOUNTS (optional),
+#   ANTHROPIC_API_KEY (optional: Claude makes the decisions when set).
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-sandbox-run
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AIRWALLEX_CLIENT_ID: ${{ secrets.AIRWALLEX_CLIENT_ID }}
+      AIRWALLEX_API_KEY: ${{ secrets.AIRWALLEX_API_KEY }}
+      AIRWALLEX_BORROWER_ACCOUNTS: ${{ secrets.AIRWALLEX_BORROWER_ACCOUNTS }}
+      AIRWALLEX_GLOBAL_ACCOUNTS: ${{ secrets.AIRWALLEX_GLOBAL_ACCOUNTS }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    steps:
+      - name: Check credentials
+        id: creds
+        run: |
+          if [ -z "$AIRWALLEX_API_KEY" ] || [ -z "$AIRWALLEX_BORROWER_ACCOUNTS" ]; then
+            echo "::notice::Airwallex secrets are not set; skipping the daily sandbox run."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.creds.outputs.skip != 'true'
+      - uses: actions/setup-node@v4
+        if: steps.creds.outputs.skip != 'true'
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - if: steps.creds.outputs.skip != 'true'
+        run: npm ci
+      - name: Ten weeks on the Airwallex sandbox
+        if: steps.creds.outputs.skip != 'true'
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then npm run demo:sandbox:llm; else npm run demo:sandbox; fi
+      - name: Publish the run
+        if: steps.creds.outputs.skip != 'true'
+        run: |
+          # Commit as the repository owner (their GitHub noreply address), not as a bot.
+          git config user.name "${{ github.repository_owner }}"
+          git config user.email "${{ github.repository_owner_id }}+${{ github.repository_owner }}@users.noreply.github.com"
+          git add web/public/runs evidence
+          if git diff --cached --quiet; then echo "Nothing new to publish."; exit 0; fi
+          git commit -m "Daily verified sandbox run $(date -u +%Y-%m-%d)"
+          git push

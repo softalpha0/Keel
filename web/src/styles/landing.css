@@ -1071,3 +1071,11 @@
 .hero-top .display {
   font-size: clamp(44px, 6.2vw, 84px);
 }
+
+.borrower-link:hover {
+  color: var(--accent-ink);
+}
+
+.footer-links {
+  flex-wrap: wrap;
+}

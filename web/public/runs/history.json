@@ -1,0 +1,37 @@
+[
+  {
+    "file": "2026-10-28T090805.json",
+    "runId": "2026-10-28T09:08:05.052Z",
+    "startedAt": "2026-10-28T09:08:05.050Z",
+    "source": "airwallex-sandbox",
+    "floorHeldEveryWeek": true,
+    "reconciledEveryWeek": true,
+    "walletsMatch": true,
+    "decisions": 5,
+    "byClaude": 5,
+    "movements": 22
+  },
+  {
+    "file": "2026-10-28T080905.json",
+    "runId": "2026-10-28T08:09:05.043Z",
+    "startedAt": "2026-10-28T08:09:05.040Z",
+    "source": "airwallex-sandbox",
+    "floorHeldEveryWeek": true,
+    "reconciledEveryWeek": true,
+    "walletsMatch": false,
+    "decisions": 5,
+    "byClaude": 5,
+    "movements": 22
+  },
+  {
+    "file": "2026-10-27T052540.json",
+    "runId": "2026-10-27T05:25:40.005Z",
+    "startedAt": "2026-10-27T05:25:40.001Z",
+    "source": "airwallex-sandbox",
+    "floorHeldEveryWeek": true,
+    "reconciledEveryWeek": true,
+    "decisions": 5,
+    "byClaude": 0,
+    "movements": 22
+  }
+]

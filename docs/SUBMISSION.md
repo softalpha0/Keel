@@ -39,9 +39,11 @@ Keel is an autonomous revenue-based lending agent for platforms on Airwallex. It
 
 **Airwallex APIs used.** Connected accounts (create, submit, activate) for each borrower; Global Accounts (USD, and SGD for the multi-currency borrower); deposit simulation for customer revenue; `connected_account_transfers` for advances; `charges` with `x-on-behalf-of` for repayments; `fx/rates/current` and `fx/conversions/create`; `balances/current`; `platform_reports` (create, retrieve, CSV download of `BALANCE_REPORT`); webhooks for `connected_account_transfer.*` and `charge.*`, HMAC-verified. All money calls use deterministic `request_id`s.
 
+**What you can try on the live site.** The credit desk (run the ten weeks, approve the hard calls, what-if sliders); **Ask Keel**, a chat panel where Claude explains any decision from the run's log; a page per borrower; the **merchant portal** showing the same run from the borrower's side; the **Sandbox run** page with every real Airwallex id and a history of runs, refreshed daily by a scheduled GitHub Action; and a **Safety** page listing nine guarantees with links to the code and tests.
+
 **How AI is used.** "The model reads, the code decides, the API moves the money." Claude chooses among policy-feasible options only and writes the credit memo through structured output. A guardrail rejects anything else, and a deterministic rules advisor takes over if the model is unavailable. The model never calls the bank.
 
-**Built with.** TypeScript, Node, React 19, Vite, Vitest + fast-check (40 tests), the Anthropic SDK (Claude), Slack incoming webhooks, the Airwallex sandbox API, Vercel.
+**Built with.** TypeScript, Node, React 19, Vite, Vitest + fast-check (44 tests), the Anthropic SDK (Claude), Slack incoming webhooks, the Airwallex sandbox API, Vercel.
 
 ## Setup instructions (for judges)
 
@@ -50,7 +52,7 @@ No install: open the live site and press **Launch the credit desk**. To run loca
 ```bash
 git clone https://github.com/softalpha0/Keel && cd Keel
 npm install
-npm test        # 40 tests
+npm test        # 44 tests
 npm run dev     # http://localhost:5173
 npm run demo    # the ten weeks in the terminal
 ```
@@ -67,4 +69,6 @@ The sandbox run needs Airwallex credentials and platform access; steps are in th
 - [ ] README: `DEMO_VIDEO_URL` and `https://www.keel.cards` replaced (search the file for both)
 - [ ] Video under 5:00, unlisted or public on YouTube
 - [ ] CI badge is green on `main`
+- [ ] Vercel → Settings → Environment Variables: `ANTHROPIC_API_KEY` set (so Ask Keel answers with Claude), then redeploy
+- [ ] GitHub → Settings → Secrets → Actions: Airwallex secrets (and `ANTHROPIC_API_KEY`) set, and the "Daily sandbox run" workflow run once by hand
 - [ ] `.env` is **not** in the repo (`git ls-files | grep .env` shows only `.env.example`)

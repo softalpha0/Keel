@@ -38,9 +38,9 @@ function Nav() {
         <Wordmark />
         <nav className="nav-links" aria-label="Sections">
           <a href="#how">How it decides</a>
-          <a href="#hard-case">The hard case</a>
           <a href="#late-money">Late money</a>
           <a href="#operations">Operations</a>
+          <Link to="/safety">Safety</Link>
           <Link to="/run">Live run</Link>
         </nav>
         <div className="nav-actions">
@@ -595,7 +595,9 @@ function Portfolio({ run }: { run: RunResult | null }) {
             <Reveal key={b.id} className="card borrower">
               <div className="borrower-top">
                 <div>
-                  <div className="card-title">{b.name}</div>
+                  <Link to={`/borrowers/${b.id}`} className="card-title borrower-link">
+                    {b.name} <span className="arrow">→</span>
+                  </Link>
                   <div className="card-sub">{borrowerSector[b.id]}</div>
                 </div>
                 <TierBadge tier={b.tier} />
@@ -673,6 +675,9 @@ function Footer() {
         <Wordmark />
         <nav className="footer-links" aria-label="Footer">
           <Link to="/desk">Credit desk</Link>
+          <Link to="/borrowers/nimbus">Borrowers</Link>
+          <Link to="/portal/nimbus">Merchant portal</Link>
+          <Link to="/safety">Safety</Link>
           <Link to="/run">Sandbox run</Link>
           <a href="https://github.com/softalpha0/Keel" target="_blank" rel="noreferrer">
             Source

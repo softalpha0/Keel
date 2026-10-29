@@ -1,16 +1,47 @@
-import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import type { RunRecord } from "../../../src/sim/record";
 import { ThemeToggle, Wordmark } from "../components/Brand";
 import { CashChart } from "../components/CashChart";
 import { Check, Cross } from "../components/Status";
 import { money, moneyIn, optionLabel } from "../lib/format";
-import { useLatestRun } from "../lib/run";
+import { runDate, useLatestRun, useRunHistory } from "../lib/run";
+import type { RunSummary } from "../../../src/sim/record";
 import { describeAsOf } from "../../../src/reconcile/portfolio";
+import { AskPanel, SparkIcon } from "../components/AskPanel";
+import { compactDecisions, compactEvents } from "../lib/ask";
 import type { WeekSnap } from "../lib/sim";
 
 export function RunPage() {
-  const load = useLatestRun();
+  const [params, setParams] = useSearchParams();
+  const file = params.get("run") ?? "latest.json";
+  const load = useLatestRun(file);
+  const history = useRunHistory();
+  const [asking, setAsking] = useState(false);
+  const run = load.state === "ready" ? load.run : null;
+  const askContext = useMemo(() => {
+    if (!run) return null;
+    const offset = run.fund.openingBalance - run.fund.size;
+    const names = Object.fromEntries(run.borrowers.map((b) => [b.id, b.name]));
+    return {
+      source: run.source,
+      reserveFloor: run.fund.reserveFloor - offset,
+      // Fund-relative cash, so amounts read like the $100K fund rather than the whole sandbox wallet.
+      weeks: run.weeks.map((w) => ({ week: w.week, cash: w.platformBalance - offset, floorHeld: w.floorHeld, reconciled: w.reconciled })),
+      borrowers: run.borrowers.map((b) => ({ id: b.id, name: b.name, currency: b.currency })),
+      decisions: compactDecisions(run.decisions, names).map((d) => ({ ...d, options: d.options?.map((o) => ({ ...o, cashAfter: o.cashAfter - offset })) })),
+      events: compactEvents(run.events),
+      notes: [
+        ...(run.portfolio
+          ? run.portfolio.rows.map(
+              (r) =>
+                `Wallet check ${r.label} ${r.currency}: ledger ${r.expected}, live ${r.live}, bank report ${r.report ?? "n/a"}${r.reportAsOf !== undefined && r.reportAsOf !== "now" ? ` (report equals the ledger ${describeAsOf(r.reportAsOf)})` : ""}${r.reportStale ? " (report line predates the run)" : ""}, ${r.match ? "matches" : "MISMATCH"}. Platform figures are absolute wallet balances, not fund-relative.`,
+            )
+          : []),
+        ...(run.balanceReport?.id ? [`Airwallex BALANCE_REPORT id ${run.balanceReport.id}.`] : []),
+      ],
+    };
+  }, [run]);
 
   return (
     <div className="console">
@@ -23,6 +54,11 @@ export function RunPage() {
             <span className="muted">Every money movement, with the bank's own ids</span>
           </div>
           <div className="topbar-actions">
+            {run && (
+              <button className="btn btn-sm btn-ask" onClick={() => setAsking(true)}>
+                <SparkIcon /> Ask Keel
+              </button>
+            )}
             <ThemeToggle />
             <Link to="/desk" className="btn btn-ghost btn-sm">
               Credit desk
@@ -34,9 +70,46 @@ export function RunPage() {
         </div>
       </header>
       <main className="run-main">
+        {history.length > 0 && <RunHistory history={history} current={file} onPick={(f) => setParams(f === history[0]?.file ? {} : { run: f })} />}
         {load.state === "loading" ? null : load.state === "missing" ? <NoRun /> : <Run run={load.run} />}
       </main>
+      <AskPanel
+        open={asking}
+        onClose={() => setAsking(false)}
+        context={askContext}
+        suggestions={["Which decisions did Claude make, and why?", "Why was Kopi's pending advance withdrawn?", "Did the floor ever come under pressure?", "What did the bank's balance report show?"]}
+      />
     </div>
+  );
+}
+
+/** Every published sandbox run; the daily GitHub Action adds one a day. */
+function RunHistory({ history, current, onPick }: { history: RunSummary[]; current: string; onPick: (file: string) => void }) {
+  const active = current === "latest.json" ? history[0]?.file : current;
+  const clean = history.filter((h) => h.floorHeldEveryWeek && h.reconciledEveryWeek && h.walletsMatch !== false).length;
+  return (
+    <section className="run-history" aria-label="Run history">
+      <div className="rh-head">
+        <strong>
+          {history.length} sandbox run{history.length === 1 ? "" : "s"}
+        </strong>
+        <span className="muted">
+          {clean === history.length ? "every one held the floor and reconciled" : `${clean} of ${history.length} fully clean`} · newest first
+        </span>
+      </div>
+      <div className="rh-list" role="list">
+        {history.slice(0, 14).map((h) => {
+          const ok = h.floorHeldEveryWeek && h.reconciledEveryWeek && h.walletsMatch !== false;
+          return (
+            <button key={h.file} role="listitem" className={`rh-item${h.file === active ? " is-on" : ""}`} onClick={() => onPick(h.file)} aria-pressed={h.file === active}>
+              <span className={`rh-dot ${ok ? "is-ok" : "is-bad"}`} aria-hidden="true" />
+              <span>{runDate(h.startedAt)}</span>
+              <span className="muted">{h.byClaude ? `Claude ${h.byClaude}/${h.decisions}` : "rules"}</span>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 

@@ -16,7 +16,8 @@
     "demo:sandbox:llm": "tsx src/cli.ts --airwallex --llm",
     "sandbox:check": "tsx src/sandbox/check.ts",
     "sandbox:setup": "tsx src/sandbox/setup.ts",
-    "sandbox:report": "tsx src/sandbox/report.ts"
+    "sandbox:report": "tsx src/sandbox/report.ts",
+    "runs:index": "tsx src/sandbox/index-runs.ts"
   },
   "engines": {
     "node": ">=20"

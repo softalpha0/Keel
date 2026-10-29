@@ -10,6 +10,8 @@ import { Check, TierBadge } from "../components/Status";
 import { borrowerSector, money, moneyCompact, optionLabel, pct } from "../lib/format";
 import { TOTAL_WEEKS, useLiveSimulation, type PendingApproval, type WeekSnap } from "../lib/sim";
 import { storyBeats } from "../lib/story";
+import { AskPanel, SparkIcon } from "../components/AskPanel";
+import { compactDecisions, compactEvents, type AskContext } from "../lib/ask";
 
 const NAMES: Record<string, string> = { kopi: "Kopi Roasters", nimbus: "Nimbus Apparel", ledgerly: "Ledgerly SaaS" };
 
@@ -19,6 +21,7 @@ export function Console() {
   const sim = useLiveSimulation(params, autoApprove);
   const [selected, setSelected] = useState<number | null>(null);
   const [view, setView] = useState<"chart" | "table">("chart");
+  const [asking, setAsking] = useState(false);
 
   const beats = useMemo(() => storyBeats(sim.decisions, sim.events, { allDecisions: true }), [sim.decisions, sim.events]);
   // Follow the newest decision while the run is playing.
@@ -32,6 +35,18 @@ export function Console() {
   const decision = selected != null ? sim.decisions[selected] : undefined;
   const week = sim.snaps.length;
 
+  const askContext = useMemo<AskContext | null>(() => {
+    if (!latest || !sim.snaps.length) return null;
+    return {
+      source: "simulated",
+      reserveFloor: latest.floor,
+      weeks: sim.snaps.map((s) => ({ week: s.week, cash: s.cash, floorHeld: s.floorHeld, reconciled: s.reconciled })),
+      borrowers: latest.borrowers.map((b) => ({ id: b.id, name: b.name, tier: b.tier, reasons: b.reasons, outstanding: b.outstanding, holdbackPct: b.holdbackBps / 100, currency: b.currency })),
+      decisions: compactDecisions(sim.decisions, NAMES),
+      events: compactEvents(sim.events),
+    };
+  }, [latest, sim.snaps, sim.decisions, sim.events]);
+
   return (
     <div className="console">
       <header className="topbar">
@@ -43,6 +58,9 @@ export function Console() {
             <span className="muted">Demo portfolio · 3 borrowers · mock bank</span>
           </div>
           <div className="topbar-actions">
+            <button className="btn btn-sm btn-ask" onClick={() => setAsking(true)}>
+              <SparkIcon /> Ask Keel
+            </button>
             <ThemeToggle />
             <Link to="/run" className="btn btn-ghost btn-sm">
               Sandbox run
@@ -167,6 +185,17 @@ export function Console() {
       </main>
 
       {sim.pending && <ApprovalDialog pending={sim.pending} floor={latest?.floor ?? 0} />}
+      <AskPanel
+        open={asking}
+        onClose={() => setAsking(false)}
+        context={askContext}
+        suggestions={[
+          "Why did you reallocate from Kopi to fund Nimbus?",
+          "Why was Nimbus declined in week 8?",
+          "What happened with Ledgerly's late payment?",
+          "How close did cash get to the reserve floor?",
+        ]}
+      />
     </div>
   );
 }
@@ -410,7 +439,9 @@ function Borrowers({ snap }: { snap: WeekSnap | null }) {
             <div className="blist-top">
               <div>
                 <div className="blist-name">
-                  {b.name}
+                  <Link to={`/borrowers/${b.id}`} className="blist-link">
+                    {b.name}
+                  </Link>
                   {b.currency !== "USD" && <span className="pill ccy-chip">repays in {b.currency}</span>}
                 </div>
                 <div className="card-sub">{borrowerSector[b.id]}</div>

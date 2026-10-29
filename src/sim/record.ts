@@ -81,3 +81,33 @@ export function buildRunRecord(args: {
     ...(args.webhooks && { webhooks: args.webhooks }),
   };
 }
+
+/** One line in web/public/runs/history.json: enough to list runs without loading each one. */
+export interface RunSummary {
+  file: string;
+  runId: string;
+  startedAt: string;
+  source: RunRecord["source"];
+  floorHeldEveryWeek: boolean;
+  reconciledEveryWeek: boolean;
+  walletsMatch?: boolean;
+  decisions: number;
+  byClaude: number;
+  movements: number;
+}
+
+export function summarize(run: RunRecord, file: string): RunSummary {
+  const decisions = run.decisions.filter((d) => d.type !== "health-review");
+  return {
+    file,
+    runId: run.runId,
+    startedAt: run.startedAt,
+    source: run.source,
+    floorHeldEveryWeek: run.floorHeldEveryWeek,
+    reconciledEveryWeek: run.reconciledEveryWeek,
+    walletsMatch: run.portfolio?.allMatch,
+    decisions: decisions.length,
+    byClaude: decisions.filter((d) => d.decidedBy === "claude").length,
+    movements: run.movements.filter((m) => m.status === "settled").length,
+  };
+}

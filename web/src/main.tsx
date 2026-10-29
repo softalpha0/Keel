@@ -13,6 +13,9 @@ import { Landing } from "./pages/Landing";
 import { Console } from "./pages/Console";
 import { RunPage } from "./pages/RunPage";
 import { NotFound } from "./pages/NotFound";
+import { BorrowerPage } from "./pages/BorrowerPage";
+import { PortalPage } from "./pages/PortalPage";
+import { SafetyPage } from "./pages/SafetyPage";
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -30,6 +33,11 @@ createRoot(document.getElementById("root")!).render(
         {/* Old links and the first demo video point here. */}
         <Route path="/console" element={<Navigate to="/desk" replace />} />
         <Route path="/run" element={<RunPage />} />
+        <Route path="/borrowers/:id" element={<BorrowerPage />} />
+        <Route path="/borrowers" element={<Navigate to="/borrowers/kopi" replace />} />
+        <Route path="/portal/:id" element={<PortalPage />} />
+        <Route path="/portal" element={<Navigate to="/portal/nimbus" replace />} />
+        <Route path="/safety" element={<SafetyPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>

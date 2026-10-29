@@ -27,6 +27,7 @@ Airwallex Agentic Banking Hackathon 2026 · **Kit 7: Portfolio Lending Agent (Dy
 - [One transfer, never two](#one-transfer-never-two)
 - [Underpayments, late money and old promises](#underpayments-late-money-and-old-promises)
 - [Built for real operations](#built-for-real-operations)
+- [Ask Keel, borrowers, the merchant portal](#ask-keel-borrowers-the-merchant-portal)
 - [What the model does, and what it never does](#what-the-model-does-and-what-it-never-does)
 - [Guarantees](#guarantees)
 - [The verified sandbox run](#the-verified-sandbox-run)
@@ -75,7 +76,10 @@ The three outcomes a borrower can get:
 2. The credit desk plays ten weeks. Pause at week 5: the third advance doesn't fit under the floor, and Keel asks you to approve a reallocation. Approve it, or reject it and see what happens instead.
 3. Click any numbered marker on the chart to open that decision, with every option it considered and the one it struck.
 4. Drag **What if… → Nimbus revenue shock** to −85% or the **Reserve floor** to $50K. The engine re-runs in your browser.
-5. Open **Sandbox run** to see the same ten weeks on the Airwallex sandbox, with every transfer id and `request_id` the API returned.
+5. Press **Ask Keel** and ask "Why was Nimbus declined in week 8?". Claude answers from the run's decision log.
+6. Click a borrower to see everything Keel knows about it, then **See what Nimbus sees** for the merchant's side.
+7. Open **Sandbox run** to see the same ten weeks on the Airwallex sandbox, with every transfer id and `request_id` the API returned, and the history of runs.
+8. **Safety** lists the nine guarantees with links to the code and tests that enforce them.
 
 No account and no install needed. The credit desk runs the real engine (the same TypeScript the tests cover) in your browser against an in-memory bank.
 
@@ -258,6 +262,16 @@ Airwallex builds the BALANCE_REPORT from data that lags the live balance (on our
 
 A borrower wallet should hold its opening balance + customer revenue + advances received − repayments charged. Any difference is printed, saved in the run record and flagged on the Sandbox run page for a person to look at.
 
+## Ask Keel, borrowers, the merchant portal
+
+**Ask Keel.** On the credit desk and the Sandbox run page, **Ask Keel** opens a chat panel. The browser sends the question and a compact copy of the run on screen to `/api/ask`, a Vercel server function that asks Claude (`claude-opus-5-5`, low effort, refusal fallback on) to answer from that data only, citing weeks and amounts. The Anthropic key stays on the server. The endpoint caps question and context size and rate-limits each caller. Without a key it answers from the decision log instead, labelled as such.
+
+**Borrower pages** (`/borrowers/:id`). Everything Keel knows and did about one borrower: what it owes, advances and repayments (with FX for Kopi), receivables, weekly sales with the health tier Keel lent against each week, every decision with its memo, and its connected account on the sandbox.
+
+**Merchant portal** (`/portal/:id`). The same run from the borrower's side: what is left to repay and how ("12% of sales, no fixed due date"), what they can draw now or why funding is paused, plain-language messages about late customer payments, a withdrawn top-up or a declined request, and a weekly statement.
+
+**Safety** (`/safety`, mirrored in [`docs/SAFETY.md`](docs/SAFETY.md)). Nine guarantees, each with how it is enforced and the files and tests that prove it.
+
 ## What the model does, and what it never does
 
 | The model may | The model may not |
@@ -297,6 +311,12 @@ A borrower wallet should hold its opening balance + customer revenue + advances 
 The run is written to `web/public/runs/latest.json` (shown at [`/run`](https://www.keel.cards/run)) and copied into [`evidence/`](evidence). Every id in those files is one Airwallex returned and can be searched in the sandbox dashboard.
 
 Result of the recorded run: floor held every week, ledger reconciled every week, every wallet matched.
+
+### A fresh verified run every day
+
+Each sandbox run is also published as `web/public/runs/<date>.json` and indexed in `web/public/runs/history.json`; the Sandbox run page lists them and opens any one (`/run?run=<file>`). `npm run runs:index` rebuilds the index from `evidence/`.
+
+[`.github/workflows/daily-sandbox-run.yml`](.github/workflows/daily-sandbox-run.yml) runs the ten weeks on the sandbox every day at 05:17 UTC (or on demand from the Actions tab) and commits the new run, authored as the repository owner, so Vercel republishes the site with it. It needs these repository secrets: `AIRWALLEX_CLIENT_ID`, `AIRWALLEX_API_KEY`, `AIRWALLEX_BORROWER_ACCOUNTS`, optionally `AIRWALLEX_GLOBAL_ACCOUNTS`, and `ANTHROPIC_API_KEY` to have Claude make the decisions. Without the Airwallex secrets it skips quietly.
 
 ## Screens
 
@@ -375,7 +395,7 @@ Needs Node 20.12+ (`.nvmrc` pins 22).
 ```bash
 npm install
 npm run dev          # website at http://localhost:5173
-npm test             # 40 tests, including the 2,000-portfolio property test
+npm test             # 44 tests, including the 2,000-portfolio property test
 npm run demo         # the ten weeks in the terminal, simulated bank
 ```
 
@@ -390,6 +410,7 @@ npm run demo         # the ten weeks in the terminal, simulated bank
 | `npm run demo` | Simulated run in the terminal; add `-- --record` to save it for `/run` |
 | `npm run demo:llm` | Same, with Claude choosing and writing memos |
 | `npm run sandbox:check` | Logs in to Airwallex, lists Global Accounts, balances and borrowers |
+| `npm run runs:index` | Rebuild the run history (`web/public/runs/history.json`) from the runs in `evidence/` |
 | `npm run sandbox:report` | Fresh BALANCE_REPORT compared with live balances now (the report lags, so run it a while after a demo) |
 | `npm run sandbox:setup` | Creates the three borrowers as active connected accounts with USD Global Accounts; add `-- --fx` for Kopi's SGD Global Account |
 | `npm run demo:sandbox` | The ten weeks on the Airwallex sandbox; writes `runs/latest.json` and `evidence/` |
@@ -421,7 +442,7 @@ Copy `.env.example` to `.env`. Only the sandbox and Claude modes need it.
 
 ### Deploying
 
-The site is static. `vercel.json` sets the build (`npm run build` → `dist/web`) and rewrites every route to the app, so `/desk` and `/run` load directly. Import the repo in Vercel and deploy; no environment variables are needed. The live run shown at `/run` is whichever `web/public/runs/latest.json` is committed.
+The site is static apart from one server function, `api/ask.ts`. `vercel.json` sets the build (`npm run build` → `dist/web`) and rewrites every route except `/api`, `/runs` and `/assets` to the app, so `/desk`, `/run`, `/borrowers/…`, `/portal/…` and `/safety` load directly. Add `ANTHROPIC_API_KEY` under Vercel → Project → Settings → Environment Variables to switch Ask Keel to Claude; without it Ask Keel answers from the decision log. The run shown at `/run` is whichever `web/public/runs/latest.json` is committed. Locally, `npm run dev` and `npm run preview` serve `/api/ask` too, using the key in `.env`.
 
 ## Testing
 
@@ -436,6 +457,7 @@ The site is static. `vercel.json` sets the build (`npm run build` → `dist/web`
 | `test/webhooks.test.ts` | Signature, tampering, stale timestamps, redelivery, event mapping | 5 |
 | `test/approvals.test.ts` | Slack message, confirmation page, token check, timeout rejects | 2 |
 | `test/portfolio.test.ts` | Every wallet three ways; a tampered ledger is caught; a lagging or stale bank report; BALANCE_REPORT CSV parsing | 4 |
+| `test/ask.test.ts` | Ask Keel's log answers find the right decision; `/api/ask` without a key, through Claude, size limits, rate limit | 4 |
 
 CI runs typecheck, tests, the production build and a simulated ten-week run on every push.
 
@@ -455,6 +477,8 @@ src/
   approvals/             Slack and terminal approvers, approval desk
   reconcile/portfolio.ts every wallet: ledger vs live balance vs bank report
   server/local.ts        callbacks: webhooks and approval links
+  ask/context.ts         what Ask Keel is told about a run, and its log-only answers
+api/ask.ts               Vercel server function: Ask Keel through Claude
   sandbox/               check, setup, request bodies
   sim/                   scenario, runner, run record
   cli.ts

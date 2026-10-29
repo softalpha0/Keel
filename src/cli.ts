@@ -14,7 +14,7 @@ import { fmt, fmtIn } from "./domain.js";
 import { demoScenario } from "./sim/scenario.js";
 import { borrowerAccountsFromEnv, loadEnv } from "./sandbox/env.js";
 import { runScenario } from "./sim/run.js";
-import { buildRunRecord, type BalanceReportRef } from "./sim/record.js";
+import { buildRunRecord, summarize, type BalanceReportRef, type RunSummary } from "./sim/record.js";
 
 loadEnv();
 const argv = process.argv.slice(2);
@@ -173,6 +173,14 @@ if (record) {
   mkdirSync("web/public/runs", { recursive: true });
   writeFileSync("web/public/runs/latest.json", JSON.stringify(run, null, 2));
   if (useAirwallex) {
+    // Every live run is also published under its own name and indexed, so the site can show the history.
+    const stamp = startedAt.toISOString().slice(0, 19).replace(/:/g, "");
+    writeFileSync(`web/public/runs/${stamp}.json`, JSON.stringify(run, null, 2));
+    const indexFile = "web/public/runs/history.json";
+    const history: RunSummary[] = existsSync(indexFile) ? (JSON.parse(readFileSync(indexFile, "utf8")) as RunSummary[]) : [];
+    history.unshift(summarize(run, `${stamp}.json`));
+    writeFileSync(indexFile, JSON.stringify(history.slice(0, 90), null, 2));
+    console.log(`Run history updated: ${history.length} sandbox run(s).`);
     // Keep every live run as evidence, named by date, alongside the one the website shows.
     mkdirSync("evidence", { recursive: true });
     const file = `evidence/airwallex-sandbox-${startedAt.toISOString().slice(0, 19).replace(/:/g, "")}.json`;
