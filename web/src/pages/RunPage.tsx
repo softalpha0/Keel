@@ -24,8 +24,8 @@ export function RunPage() {
           </div>
           <div className="topbar-actions">
             <ThemeToggle />
-            <Link to="/console" className="btn btn-ghost btn-sm">
-              Console
+            <Link to="/desk" className="btn btn-ghost btn-sm">
+              Credit desk
             </Link>
             <Link to="/" className="btn btn-ghost btn-sm">
               Overview

@@ -11,7 +11,7 @@ A platform has three merchants on it, a $100K lending fund, and a rule: platform
 [![Keel demo video](docs/demo-poster.png)](DEMO_VIDEO_URL)
 
 - **Demo video** (under 5 minutes): DEMO_VIDEO_URL
-- **Live site:** LIVE_SITE_URL ([console](LIVE_SITE_URL/console), [sandbox run](LIVE_SITE_URL/run))
+- **Live site:** https://www.keel.cards ([credit desk](https://www.keel.cards/desk), [sandbox run](https://www.keel.cards/run))
 - **Evidence:** [`evidence/`](evidence), every Airwallex transfer, charge and `request_id` from a recorded sandbox run
 
 Airwallex Agentic Banking Hackathon 2026 · **Kit 7: Portfolio Lending Agent (Dynamic Lending)**
@@ -71,13 +71,13 @@ The three outcomes a borrower can get:
 
 ## Try it in a minute
 
-1. Open the **live site** and press **Run the ten weeks**.
-2. The console plays ten weeks. Pause at week 5: the third advance doesn't fit under the floor, and Keel asks you to approve a reallocation. Approve it, or reject it and see what happens instead.
+1. Open the **live site** and press **Launch the credit desk**.
+2. The credit desk plays ten weeks. Pause at week 5: the third advance doesn't fit under the floor, and Keel asks you to approve a reallocation. Approve it, or reject it and see what happens instead.
 3. Click any numbered marker on the chart to open that decision, with every option it considered and the one it struck.
 4. Drag **What if… → Nimbus revenue shock** to −85% or the **Reserve floor** to $50K. The engine re-runs in your browser.
 5. Open **Sandbox run** to see the same ten weeks on the Airwallex sandbox, with every transfer id and `request_id` the API returned.
 
-No account and no install needed. The console runs the real engine (the same TypeScript the tests cover) in your browser against an in-memory bank.
+No account and no install needed. The credit desk runs the real engine (the same TypeScript the tests cover) in your browser against an in-memory bank.
 
 ## How it works
 
@@ -104,7 +104,7 @@ flowchart LR
 ```mermaid
 flowchart TB
   subgraph Web["Website (Vite + React)"]
-    L[Landing] --- CO[Console] --- RP[Sandbox run page]
+    L[Landing] --- CO[Credit desk] --- RP[Sandbox run page]
   end
   subgraph Engine["Engine (TypeScript, runs in Node and the browser)"]
     SIG[policy/signals] --> ENG[policy/engine]
@@ -279,7 +279,7 @@ A borrower wallet should hold its opening balance + customer revenue + advances 
 | Late money is not read as distress | Scenario test: Ledgerly stays healthy and its receivable clears in week 7 |
 | Promises are re-checked before payment | Scenario test: Kopi's pending advance is withdrawn in week 6 |
 | The model can't override policy | Rogue-advisor test |
-| Advances over $20K and all reallocations need a human | Approval gate in `LendingAgent.choose`; the console dialog, or Slack (`test/approvals.test.ts`: only the confirmation POST with the right token decides; silence rejects) |
+| Advances over $20K and all reallocations need a human | Approval gate in `LendingAgent.choose`; the credit desk dialog, or Slack (`test/approvals.test.ts`: only the confirmation POST with the right token decides; silence rejects) |
 | Every wallet reconciles, not just the platform | `test/portfolio.test.ts`: all five wallets match three ways after the demo, and a tampered ledger is caught |
 | A foreign-currency repayment converts exactly once | `test/fx.test.ts`: a lost response on an SGD charge still yields one charge and one conversion |
 | Forged or replayed webhooks change nothing | `test/webhooks.test.ts`: wrong secret, edited body, stale timestamp and redelivery |
@@ -294,7 +294,7 @@ A borrower wallet should hold its opening balance + customer revenue + advances 
 - Claude making the credit decisions (`npm run demo:sandbox:llm`), approvals optionally in Slack
 - a **`BALANCE_REPORT`** downloaded at the end, and every wallet reconciled against it
 
-The run is written to `web/public/runs/latest.json` (shown at [`/run`](LIVE_SITE_URL/run)) and copied into [`evidence/`](evidence). Every id in those files is one Airwallex returned and can be searched in the sandbox dashboard.
+The run is written to `web/public/runs/latest.json` (shown at [`/run`](https://www.keel.cards/run)) and copied into [`evidence/`](evidence). Every id in those files is one Airwallex returned and can be searched in the sandbox dashboard.
 
 Result of the recorded run: floor held every week, ledger reconciled every week, every wallet matched.
 
@@ -302,8 +302,8 @@ Result of the recorded run: floor held every week, ledger reconciled every week,
 
 | | |
 | --- | --- |
-| ![Landing](docs/screens/landing.png) | ![Landing, dark](docs/screens/landing-dark.png) |
-| ![Console](docs/screens/console.png) | ![Console, dark](docs/screens/console-dark.png) |
+| ![Landing](docs/screens/landing.png) | ![Landing, light theme](docs/screens/landing-dark.png) |
+| ![Credit desk](docs/screens/console.png) | ![Credit desk, light theme](docs/screens/console-dark.png) |
 | ![The hard case](docs/screens/hard-case.png) | ![Late money](docs/screens/late-money.png) |
 | ![Sandbox run](docs/screens/run.png) | ![Mobile](docs/screens/mobile.png) |
 | ![Built for operations: Slack approvals, Claude, SGD, webhooks](docs/screens/operations.png) | ![Every wallet reconciled three ways](docs/screens/reconciliation-dark.png) |
@@ -421,7 +421,7 @@ Copy `.env.example` to `.env`. Only the sandbox and Claude modes need it.
 
 ### Deploying
 
-The site is static. `vercel.json` sets the build (`npm run build` → `dist/web`) and rewrites every route to the app, so `/console` and `/run` load directly. Import the repo in Vercel and deploy; no environment variables are needed. The live run shown at `/run` is whichever `web/public/runs/latest.json` is committed.
+The site is static. `vercel.json` sets the build (`npm run build` → `dist/web`) and rewrites every route to the app, so `/desk` and `/run` load directly. Import the repo in Vercel and deploy; no environment variables are needed. The live run shown at `/run` is whichever `web/public/runs/latest.json` is committed.
 
 ## Testing
 
@@ -458,7 +458,7 @@ src/
   sandbox/               check, setup, request bodies
   sim/                   scenario, runner, run record
   cli.ts
-web/                     the website (landing, console, sandbox run)
+web/                     the website (landing, credit desk, sandbox run)
 test/
 evidence/                recorded Airwallex sandbox runs
 docs/                    screenshots, video storyboard, submission text

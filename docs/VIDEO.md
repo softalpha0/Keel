@@ -31,9 +31,9 @@ Voiceover pace: about 150 words a minute. The script below is ~600 words.
 **VO:**
 > The design splits judgement from authority. Signals turn revenue into a health tier. A policy engine builds every way to answer a request (full, partial, delay, reallocate, decline) and strikes anything that would breach the floor before a model ever sees it. The model can choose among what's left and write the memo. Only one component can touch the bank, and it never moves the same money twice.
 
-## 1:20–2:30 · The console: the hard case
+## 1:20–2:30 · The credit desk: the hard case
 
-**Screen:** Open `/console`. Auto-approve **off**. Press **Run**. Let weeks 1–4 play (fast; speed up 2× in the edit). The approval dialog appears in week 5. Hold on it.
+**Screen:** Open `/desk`. Auto-approve **off**. Press **Run**. Let weeks 1–4 play (fast; speed up 2× in the edit). The approval dialog appears in week 5. Hold on it.
 
 **Caption:** `Week 5 · Nimbus asks for $26,000`
 
@@ -95,7 +95,7 @@ Also visible: marker for the lost bank response.
 
 - [ ] Landing hero with the verified card (after committing the live `latest.json`)
 - [ ] "How it decides" section
-- [ ] Console run with the approval dialog at week 5 (auto-approve off)
+- [ ] Credit desk run with the approval dialog at week 5 (auto-approve off)
 - [ ] Decision panel with struck "full" option
 - [ ] Markers: paid late, promise re-checked, lost response, stressed
 - [ ] What-if sliders re-running

@@ -1,6 +1,6 @@
 import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import "@fontsource-variable/inter";
 import "@fontsource-variable/jetbrains-mono";
 import "@fontsource/instrument-serif/400.css";
@@ -26,7 +26,9 @@ createRoot(document.getElementById("root")!).render(
       <ScrollToTop />
       <Routes>
         <Route path="/" element={<Landing />} />
-        <Route path="/console" element={<Console />} />
+        <Route path="/desk" element={<Console />} />
+        {/* Old links and the first demo video point here. */}
+        <Route path="/console" element={<Navigate to="/desk" replace />} />
         <Route path="/run" element={<RunPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

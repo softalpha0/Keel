@@ -1,37 +1,45 @@
-/* Keel design tokens. Light is the base; dark is a selected set, not an inversion. */
+/*
+ * Keel design tokens. Dark is the brand; light is an alternative the viewer can choose.
+ * One accent everywhere (site, charts, logo, video, social image): Keel Violet #8b7cff.
+ * Status colours (green / amber / red) are reserved for health and never used as brand.
+ */
 :root {
-  color-scheme: light;
+  color-scheme: dark;
 
-  --page: #f9f9f7;
-  --surface: #fcfcfb;
-  --surface-2: #f3f2ee;
-  --surface-sunk: #efeee9;
-  --ink: #0b0b0b;
-  --ink-2: #52514e;
-  --ink-3: #898781;
-  --hairline: #e1e0d9;
-  --baseline: #c3c2b7;
-  --ring: rgba(11, 11, 11, 0.1);
-  --ring-strong: rgba(11, 11, 11, 0.18);
+  --page: #07070b;
+  --surface: #0e0e15;
+  --surface-2: #15151f;
+  --surface-sunk: #0a0a10;
+  --ink: #eceaf3;
+  --ink-2: #b3b1c2;
+  --ink-3: #7d7b8f;
+  --hairline: #22212d;
+  --baseline: #33323f;
+  --ring: rgba(255, 255, 255, 0.07);
+  --ring-strong: rgba(255, 255, 255, 0.14);
 
-  --accent: #2a78d6;
-  --accent-ink: #1c5cab;
-  --accent-wash: rgba(42, 120, 214, 0.1);
-  --accent-wash-2: rgba(42, 120, 214, 0.05);
+  --accent: #8b7cff;
+  --accent-ink: #b5abff;
+  --on-accent: #0b0716;
+  --accent-wash: rgba(139, 124, 255, 0.16);
+  --accent-wash-2: rgba(139, 124, 255, 0.07);
+  --accent-glow: rgba(139, 124, 255, 0.35);
 
-  --good: #0ca30c;
-  --good-ink: #006300;
-  --good-wash: rgba(12, 163, 12, 0.1);
+  --good: #2fbf55;
+  --good-ink: #4fd97a;
+  --good-wash: rgba(47, 191, 85, 0.14);
   --warning: #fab219;
-  --warning-ink: #8a5a00;
-  --warning-wash: rgba(250, 178, 25, 0.16);
-  --critical: #d03b3b;
-  --critical-ink: #b42f2f;
-  --critical-wash: rgba(208, 59, 59, 0.07);
+  --warning-ink: #fbbf3c;
+  --warning-wash: rgba(250, 178, 25, 0.12);
+  --critical: #e5484d;
+  --critical-ink: #ff7a7f;
+  --critical-wash: rgba(229, 72, 77, 0.13);
 
-  --shadow-1: 0 1px 0 rgba(11, 11, 11, 0.03), 0 1px 2px rgba(11, 11, 11, 0.04);
-  --shadow-2: 0 1px 0 rgba(11, 11, 11, 0.03), 0 8px 24px -8px rgba(11, 11, 11, 0.12);
-  --shadow-3: 0 24px 64px -24px rgba(11, 11, 11, 0.28);
+  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.5);
+  --shadow-2: 0 1px 0 rgba(0, 0, 0, 0.5), 0 16px 40px -16px rgba(0, 0, 0, 0.7);
+  --shadow-3: 0 30px 80px -30px rgba(0, 0, 0, 0.9);
+  /* Hairline highlight on the top edge of raised surfaces. */
+  --edge: inset 0 1px 0 rgba(255, 255, 255, 0.05), inset 0 0 0 1px var(--ring);
 
   --font-sans: "Inter Variable", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-display: "Instrument Serif", ui-serif, Georgia, serif;
@@ -47,60 +55,38 @@
   --gutter: clamp(16px, 4vw, 32px);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --page: #0d0d0d;
-    --surface: #161615;
-    --surface-2: #1d1d1c;
-    --surface-sunk: #121211;
-    --ink: #f0efec;
-    --ink-2: #c3c2b7;
-    --ink-3: #898781;
-    --hairline: #2c2c2a;
-    --baseline: #383835;
-    --ring: rgba(255, 255, 255, 0.08);
-    --ring-strong: rgba(255, 255, 255, 0.16);
-    --accent: #3987e5;
-    --accent-ink: #86b6ef;
-    --accent-wash: rgba(57, 135, 229, 0.14);
-    --accent-wash-2: rgba(57, 135, 229, 0.07);
-    --good-ink: #0ca30c;
-    --good-wash: rgba(12, 163, 12, 0.14);
-    --warning-ink: #fab219;
-    --warning-wash: rgba(250, 178, 25, 0.12);
-    --critical-ink: #e66767;
-    --critical-wash: rgba(208, 59, 59, 0.12);
-    --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.4);
-    --shadow-2: 0 1px 0 rgba(0, 0, 0, 0.4), 0 12px 32px -12px rgba(0, 0, 0, 0.6);
-    --shadow-3: 0 24px 64px -24px rgba(0, 0, 0, 0.8);
-  }
-}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --page: #f8f7fb;
+  --surface: #ffffff;
+  --surface-2: #f2f1f7;
+  --surface-sunk: #eceaf3;
+  --ink: #0d0c14;
+  --ink-2: #4f4d5e;
+  --ink-3: #85839a;
+  --hairline: #e3e1ec;
+  --baseline: #c9c6d6;
+  --ring: rgba(13, 12, 20, 0.08);
+  --ring-strong: rgba(13, 12, 20, 0.16);
 
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --page: #0d0d0d;
-  --surface: #161615;
-  --surface-2: #1d1d1c;
-  --surface-sunk: #121211;
-  --ink: #f0efec;
-  --ink-2: #c3c2b7;
-  --ink-3: #898781;
-  --hairline: #2c2c2a;
-  --baseline: #383835;
-  --ring: rgba(255, 255, 255, 0.08);
-  --ring-strong: rgba(255, 255, 255, 0.16);
-  --accent: #3987e5;
-  --accent-ink: #86b6ef;
-  --accent-wash: rgba(57, 135, 229, 0.14);
-  --accent-wash-2: rgba(57, 135, 229, 0.07);
-  --good-ink: #0ca30c;
-  --good-wash: rgba(12, 163, 12, 0.14);
-  --warning-ink: #fab219;
-  --warning-wash: rgba(250, 178, 25, 0.12);
-  --critical-ink: #e66767;
-  --critical-wash: rgba(208, 59, 59, 0.12);
-  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 1px 0 rgba(0, 0, 0, 0.4), 0 12px 32px -12px rgba(0, 0, 0, 0.6);
-  --shadow-3: 0 24px 64px -24px rgba(0, 0, 0, 0.8);
+  --accent: #6a5ae0;
+  --accent-ink: #4c3fc0;
+  --on-accent: #ffffff;
+  --accent-wash: rgba(106, 90, 224, 0.1);
+  --accent-wash-2: rgba(106, 90, 224, 0.05);
+  --accent-glow: rgba(106, 90, 224, 0.28);
+
+  --good: #0ca30c;
+  --good-ink: #006300;
+  --good-wash: rgba(12, 163, 12, 0.1);
+  --warning-ink: #8a5a00;
+  --warning-wash: rgba(250, 178, 25, 0.16);
+  --critical: #d03b3b;
+  --critical-ink: #b42f2f;
+  --critical-wash: rgba(208, 59, 59, 0.08);
+
+  --shadow-1: 0 1px 0 rgba(13, 12, 20, 0.03), 0 1px 2px rgba(13, 12, 20, 0.05);
+  --shadow-2: 0 1px 0 rgba(13, 12, 20, 0.03), 0 10px 28px -10px rgba(13, 12, 20, 0.14);
+  --shadow-3: 0 24px 64px -24px rgba(13, 12, 20, 0.28);
+  --edge: inset 0 0 0 1px var(--ring);
 }

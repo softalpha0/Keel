@@ -39,7 +39,7 @@ export function Console() {
           <Wordmark />
           <span className="topbar-sep" aria-hidden="true" />
           <div className="topbar-title">
-            <strong>Console</strong>
+            <strong>Credit desk</strong>
             <span className="muted">Demo portfolio · 3 borrowers · mock bank</span>
           </div>
           <div className="topbar-actions">

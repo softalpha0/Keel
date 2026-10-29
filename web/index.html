@@ -6,14 +6,22 @@
     <title>Keel — the lending agent that never breaks the floor</title>
     <meta name="description" content="Keel is an autonomous revenue-based lending agent for platforms. It collects, sizes and funds advances without ever breaching your cash reserve, and shows its working." />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <meta name="theme-color" content="#07070b" />
+    <script>
+      // Apply a remembered light theme before first paint, so there is no flash.
+      try { if (localStorage.getItem("keel-theme") === "light") document.documentElement.setAttribute("data-theme", "light"); } catch (e) {}
+    </script>
+    <link rel="canonical" href="https://www.keel.cards/" />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.keel.cards/" />
+    <meta property="og:site_name" content="Keel" />
     <meta property="og:title" content="Keel — the lending agent that never breaks the floor" />
     <meta property="og:description" content="Revenue-based lending on Airwallex rails. The model reads, the code decides, the API moves the money." />
-    <meta property="og:image" content="/og.png" />
+    <meta property="og:image" content="https://www.keel.cards/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="/og.png" />
-    <meta name="theme-color" content="#f9f9f7" media="(prefers-color-scheme: light)" />
-    <meta name="theme-color" content="#0d0d0d" media="(prefers-color-scheme: dark)" />
+    <meta name="twitter:image" content="https://www.keel.cards/og.png" />
   </head>
   <body>
     <div id="root"></div>

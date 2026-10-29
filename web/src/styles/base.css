@@ -13,7 +13,12 @@ html {
 
 body {
   margin: 0;
-  background: var(--page);
+  /* A faint violet light from the top, so dark pages have depth instead of a flat black. */
+  background:
+    radial-gradient(1200px 600px at 70% -10%, var(--accent-wash-2), transparent 70%),
+    radial-gradient(900px 500px at 0% 0%, rgba(255, 255, 255, 0.02), transparent 70%),
+    var(--page);
+  background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: 15px;
@@ -137,24 +142,24 @@ button {
   transform: none;
 }
 
-.btn-primary {
-  --btn-bg: var(--ink);
-  --btn-ink: var(--page);
-  --btn-ring: transparent;
-}
-
-.btn-primary:hover {
-  background: color-mix(in oklab, var(--ink) 86%, var(--page));
-}
-
+/* Primary actions are the brand violet everywhere, with a soft glow. */
+.btn-primary,
 .btn-accent {
   --btn-bg: var(--accent);
-  --btn-ink: #fff;
+  --btn-ink: var(--on-accent);
   --btn-ring: transparent;
+  font-weight: 600;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.25),
+    0 8px 24px -10px var(--accent-glow);
 }
 
+.btn-primary:hover,
 .btn-accent:hover {
-  background: color-mix(in oklab, var(--accent) 88%, black);
+  background: color-mix(in oklab, var(--accent) 88%, white);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.3),
+    0 10px 30px -8px var(--accent-glow);
 }
 
 .btn-ghost {
@@ -189,9 +194,9 @@ button {
 /* ---------- Surfaces ---------- */
 
 .card {
-  background: var(--surface);
+  background: linear-gradient(180deg, color-mix(in oklab, var(--surface) 97%, white), var(--surface));
   border-radius: var(--r-lg);
-  box-shadow: inset 0 0 0 1px var(--ring), var(--shadow-1);
+  box-shadow: var(--edge), var(--shadow-1);
 }
 
 .card-header {

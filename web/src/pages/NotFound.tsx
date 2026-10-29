@@ -21,8 +21,8 @@ export function NotFound() {
             <Link to="/" className="btn btn-primary btn-sm">
               Overview
             </Link>
-            <Link to="/console" className="btn btn-sm">
-              Console
+            <Link to="/desk" className="btn btn-sm">
+              Credit desk
             </Link>
             <Link to="/run" className="btn btn-sm">
               Sandbox run

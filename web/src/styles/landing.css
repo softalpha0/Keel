@@ -21,10 +21,14 @@
 .wordmark {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 9px;
   font-weight: 650;
   font-size: 18px;
   letter-spacing: -0.03em;
+}
+
+.wordmark .mark {
+  filter: drop-shadow(0 4px 12px var(--accent-glow));
 }
 
 .nav-links {
@@ -108,7 +112,25 @@
 /* ---------- Hero ---------- */
 
 .hero {
+  position: relative;
   padding: clamp(48px, 7vw, 88px) 0 clamp(48px, 8vw, 96px);
+  isolation: isolate;
+}
+
+/* A faint ledger grid behind the hero, fading out, with the brand glow at the top right. */
+.hero::before {
+  content: "";
+  position: absolute;
+  inset: -64px 0 0;
+  z-index: -1;
+  background:
+    radial-gradient(600px 360px at 78% 22%, var(--accent-wash), transparent 70%),
+    linear-gradient(var(--hairline) 1px, transparent 1px) 0 0 / 56px 56px,
+    linear-gradient(90deg, var(--hairline) 1px, transparent 1px) 0 0 / 56px 56px;
+  opacity: 0.38;
+  mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, #000 30%, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 20%, #000 30%, transparent 75%);
+  pointer-events: none;
 }
 
 .hero-top {
@@ -270,7 +292,11 @@
 
 .hero-figure {
   margin: clamp(40px, 5vw, 64px) 0 0;
-  box-shadow: inset 0 0 0 1px var(--ring), var(--shadow-3);
+  box-shadow:
+    var(--edge),
+    0 0 0 1px color-mix(in oklab, var(--accent) 18%, transparent),
+    0 40px 120px -40px var(--accent-glow),
+    var(--shadow-3);
   animation: rise 700ms var(--ease) both 120ms;
 }
 

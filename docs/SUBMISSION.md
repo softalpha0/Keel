@@ -10,7 +10,7 @@ Paste-ready text for each field. Replace the three URLs first.
 
 **Links**
 - Demo video: DEMO_VIDEO_URL
-- Live demo: LIVE_SITE_URL
+- Live demo: https://www.keel.cards
 - Repository: https://github.com/softalpha0/Keel
 
 ---
@@ -45,7 +45,7 @@ Keel is an autonomous revenue-based lending agent for platforms on Airwallex. It
 
 ## Setup instructions (for judges)
 
-No install: open the live site and press **Run the ten weeks**. To run locally:
+No install: open the live site and press **Launch the credit desk**. To run locally:
 
 ```bash
 git clone https://github.com/softalpha0/Keel && cd Keel
@@ -63,8 +63,8 @@ The sandbox run needs Airwallex credentials and platform access; steps are in th
 
 - [ ] Repo is **public** (Settings → General → Danger zone → Change visibility)
 - [ ] Fresh `npm run demo:sandbox` done; `web/public/runs/latest.json` and the new `evidence/*.json` committed
-- [ ] Vercel deploy is live; `/console` and `/run` load when opened directly
-- [ ] README: `DEMO_VIDEO_URL` and `LIVE_SITE_URL` replaced (search the file for both)
+- [ ] Vercel deploy is live; `/desk` and `/run` load when opened directly
+- [ ] README: `DEMO_VIDEO_URL` and `https://www.keel.cards` replaced (search the file for both)
 - [ ] Video under 5:00, unlisted or public on YouTube
 - [ ] CI badge is green on `main`
 - [ ] `.env` is **not** in the repo (`git ls-files | grep .env` shows only `.env.example`)

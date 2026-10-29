@@ -48,20 +48,21 @@ export function useReveal<T extends HTMLElement>() {
   return [ref, visible] as const;
 }
 
-type Theme = "light" | "dark" | "system";
+type Theme = "light" | "dark";
 
 export function useTheme() {
+  // Dark is Keel's brand; light is opt-in and remembered.
   const [theme, setTheme] = useState<Theme>(() => {
     try {
-      return (localStorage.getItem("keel-theme") as Theme) || "system";
+      return localStorage.getItem("keel-theme") === "light" ? "light" : "dark";
     } catch {
-      return "system";
+      return "dark";
     }
   });
   useEffect(() => {
     const root = document.documentElement;
-    if (theme === "system") root.removeAttribute("data-theme");
-    else root.setAttribute("data-theme", theme);
+    if (theme === "light") root.setAttribute("data-theme", "light");
+    else root.removeAttribute("data-theme");
     try {
       localStorage.setItem("keel-theme", theme);
     } catch {

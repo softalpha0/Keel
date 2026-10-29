@@ -45,8 +45,8 @@ function Nav() {
         </nav>
         <div className="nav-actions">
           <ThemeToggle />
-          <Link to="/console" className="btn btn-primary btn-sm">
-            Open console <span className="arrow">→</span>
+          <Link to="/desk" className="btn btn-primary btn-sm">
+            Launch the desk <span className="arrow">→</span>
           </Link>
         </div>
       </div>
@@ -78,8 +78,8 @@ function Hero({ run, live }: { run: RunResult | null; live: LatestRun }) {
             against your cash reserve. Then it shows its working.
           </p>
           <div className="hero-ctas">
-            <Link to="/console" className="btn btn-primary">
-              Run the ten weeks <span className="arrow">→</span>
+            <Link to="/desk" className="btn btn-primary">
+              Launch the credit desk <span className="arrow">→</span>
             </Link>
             <a href="#how" className="btn">
               How it decides
@@ -627,7 +627,7 @@ function Guarantees({ run }: { run: RunResult | null }) {
     { big: "0", unit: "floor breaches", text: "Every test run checks 2,000 random portfolios: no option the engine approves ever leaves cash below the floor." },
     { big: "1×", unit: "per transfer", text: "Each money movement has a fixed idempotency key. Retrying after a lost response returns the original transfer." },
     { big: `${reconciled}/${weeks}`, unit: "weeks reconciled", text: "The ledger is checked against the bank every week, and every wallet against the bank's own report at the end." },
-    { big: "$20K", unit: "approval line", text: "Advances above $20K, and any reallocation of capital, wait for a person: in the console, or in Slack." },
+    { big: "$20K", unit: "approval line", text: "Advances above $20K, and any reallocation of capital, wait for a person: on the credit desk, or in Slack." },
   ];
   return (
     <section className="section section-alt" id="guarantees">
@@ -658,8 +658,8 @@ function Closing() {
           Run the ten weeks <em>yourself.</em>
         </h2>
         <p className="section-lede">Step through each week, approve the hard calls, and push a borrower into a revenue shock to see how Keel responds.</p>
-        <Link to="/console" className="btn btn-primary">
-          Open the console <span className="arrow">→</span>
+        <Link to="/desk" className="btn btn-primary">
+          Launch the credit desk <span className="arrow">→</span>
         </Link>
       </div>
     </section>
@@ -672,7 +672,7 @@ function Footer() {
       <div className="container footer-inner">
         <Wordmark />
         <nav className="footer-links" aria-label="Footer">
-          <Link to="/console">Console</Link>
+          <Link to="/desk">Credit desk</Link>
           <Link to="/run">Sandbox run</Link>
           <a href="https://github.com/softalpha0/Keel" target="_blank" rel="noreferrer">
             Source
