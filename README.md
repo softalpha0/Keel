@@ -8,9 +8,9 @@ A platform has three merchants on it, a $100K lending fund, and a rule: platform
 
 [![CI](https://github.com/softalpha0/Keel/actions/workflows/ci.yml/badge.svg)](https://github.com/softalpha0/Keel/actions/workflows/ci.yml)
 
-[![Keel demo video](docs/demo-poster.png)](DEMO_VIDEO_URL)
+[![Keel demo video](docs/demo-poster.png)](https://youtu.be/opEIC3MWbtw)
 
-- **Demo video** (under 5 minutes): DEMO_VIDEO_URL
+- **Demo video** (under 5 minutes): https://youtu.be/opEIC3MWbtw
 - **Live site:** https://www.keel.cards ([credit desk](https://www.keel.cards/desk), [sandbox run](https://www.keel.cards/run))
 - **Evidence:** [`evidence/`](evidence), every Airwallex transfer, charge and `request_id` from a recorded sandbox run
 

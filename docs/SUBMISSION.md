@@ -9,7 +9,7 @@ Paste-ready text for each field. Replace the three URLs first.
 **Tagline:** Lend against revenue. Never breach the floor.
 
 **Links**
-- Demo video: DEMO_VIDEO_URL
+- Demo video: https://youtu.be/opEIC3MWbtw
 - Live demo: https://www.keel.cards
 - Repository: https://github.com/softalpha0/Keel
 
@@ -66,7 +66,7 @@ The sandbox run needs Airwallex credentials and platform access; steps are in th
 - [ ] Repo is **public** (Settings → General → Danger zone → Change visibility)
 - [ ] Fresh `npm run demo:sandbox` done; `web/public/runs/latest.json` and the new `evidence/*.json` committed
 - [ ] Vercel deploy is live; `/desk` and `/run` load when opened directly
-- [ ] README: `DEMO_VIDEO_URL` and `https://www.keel.cards` replaced (search the file for both)
+- [ ] README: `https://youtu.be/opEIC3MWbtw` and `https://www.keel.cards` replaced (search the file for both)
 - [ ] Video under 5:00, unlisted or public on YouTube
 - [ ] CI badge is green on `main`
 - [ ] Vercel → Settings → Environment Variables: `ANTHROPIC_API_KEY` set (so Ask Keel answers with Claude), then redeploy
