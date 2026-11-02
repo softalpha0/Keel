@@ -27,10 +27,6 @@
   letter-spacing: -0.03em;
 }
 
-.wordmark .mark {
-  filter: drop-shadow(0 4px 12px var(--accent-glow));
-}
-
 .nav-links {
   display: flex;
   gap: 4px;
@@ -117,14 +113,13 @@
   isolation: isolate;
 }
 
-/* A faint ledger grid behind the hero, fading out, with the brand glow at the top right. */
+/* A faint ledger grid behind the hero, fading out. */
 .hero::before {
   content: "";
   position: absolute;
   inset: -64px 0 0;
   z-index: -1;
   background:
-    radial-gradient(600px 360px at 78% 22%, var(--accent-wash), transparent 70%),
     linear-gradient(var(--hairline) 1px, transparent 1px) 0 0 / 56px 56px,
     linear-gradient(90deg, var(--hairline) 1px, transparent 1px) 0 0 / 56px 56px;
   opacity: 0.38;
@@ -294,8 +289,6 @@
   margin: clamp(40px, 5vw, 64px) 0 0;
   box-shadow:
     var(--edge),
-    0 0 0 1px color-mix(in oklab, var(--accent) 18%, transparent),
-    0 40px 120px -40px var(--accent-glow),
     var(--shadow-3);
   animation: rise 700ms var(--ease) both 120ms;
 }
