@@ -190,10 +190,10 @@ export function Console() {
         onClose={() => setAsking(false)}
         context={askContext}
         emptyAction={{
-          hint: "Ask Keel explains the decisions in this run, so it needs a run first. Start the ten weeks, then ask about anything that happens.",
+          hint: "Ask Keel explains the decisions in this run, so it needs a run first. This runs all ten weeks with auto-approve on, so it never stops to wait for you. Turn auto-approve off to make the big calls yourself.",
           label: "Run the ten weeks",
           onClick: () => {
-            setAsking(false);
+            setAutoApprove(true);
             void sim.reset().then(() => sim.play());
           },
         }}
