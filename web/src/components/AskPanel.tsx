@@ -13,7 +13,14 @@ export function SparkIcon({ size = 14 }: { size?: number }) {
 }
 
 /** Slide-over chat: ask Claude why the agent did what it did, grounded in the run on screen. */
-export function AskPanel({ open, onClose, context, suggestions }: { open: boolean; onClose: () => void; context: AskContext | null; suggestions: string[] }) {
+/** Shown instead of the suggestions when there is no run to talk about yet. */
+export interface AskEmptyAction {
+  hint: string;
+  label: string;
+  onClick: () => void;
+}
+
+export function AskPanel({ open, onClose, context, suggestions, emptyAction }: { open: boolean; onClose: () => void; context: AskContext | null; suggestions: string[]; emptyAction?: AskEmptyAction }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [draft, setDraft] = useState("");
   const [busy, setBusy] = useState(false);
@@ -61,7 +68,17 @@ export function AskPanel({ open, onClose, context, suggestions }: { open: boolea
         </header>
 
         <div className="ask-body" ref={list}>
-          {messages.length === 0 && (
+          {messages.length === 0 && !context && (
+            <div className="ask-empty">
+              <p className="secondary">{emptyAction?.hint ?? "Ask Keel answers from a run's decision log, and there isn't one yet."}</p>
+              {emptyAction && (
+                <button className="btn btn-primary btn-sm ask-start" onClick={emptyAction.onClick}>
+                  {emptyAction.label}
+                </button>
+              )}
+            </div>
+          )}
+          {messages.length === 0 && context && (
             <div className="ask-empty">
               <p className="secondary">Ask why the agent did something. Try one of these:</p>
               <div className="ask-chips">
@@ -104,6 +121,7 @@ export function AskPanel({ open, onClose, context, suggestions }: { open: boolea
           <textarea
             ref={input}
             value={draft}
+            disabled={!context}
             maxLength={500}
             rows={2}
             placeholder={context ? "Why did you decline Nimbus in week 8?" : "Run a few weeks first"}

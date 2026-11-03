@@ -371,3 +371,27 @@ button {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Shown by RouteBoundary instead of a blank screen. */
+.page-error {
+  display: grid;
+  place-items: center;
+  min-height: 100vh;
+  padding: 16px;
+}
+
+.page-error .card {
+  display: grid;
+  gap: 10px;
+  max-width: 440px;
+  padding: 24px;
+}
+
+.page-error code {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.page-error .btn {
+  justify-self: start;
+}

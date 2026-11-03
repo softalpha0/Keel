@@ -988,6 +988,15 @@
   gap: 12px;
 }
 
+.ask-start {
+  justify-self: start;
+}
+
+.ask-form textarea:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .ask-chips {
   display: grid;
   gap: 8px;

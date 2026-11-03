@@ -189,6 +189,14 @@ export function Console() {
         open={asking}
         onClose={() => setAsking(false)}
         context={askContext}
+        emptyAction={{
+          hint: "Ask Keel explains the decisions in this run, so it needs a run first. Start the ten weeks, then ask about anything that happens.",
+          label: "Run the ten weeks",
+          onClick: () => {
+            setAsking(false);
+            void sim.reset().then(() => sim.play());
+          },
+        }}
         suggestions={[
           "Why did you reallocate from Kopi to fund Nimbus?",
           "Why was Nimbus declined in week 8?",
