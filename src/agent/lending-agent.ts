@@ -23,6 +23,15 @@ export interface Settlement {
   received: Map<string, Cents>;
   /** Earlier weeks' customer payments that arrived this week. */
   late: { borrowerId: string; forWeek: number; amount: Cents }[];
+  /**
+   * Per borrower: the deposits the bank itself shows landing this week (borrower currency), when the
+   * bank can list them. Keel collects only on what the bank confirms, whatever the sales feed says.
+   */
+  deposits?: Map<string, { amount: Cents; ids: string[] }>;
+  /** Collect only on what the bank confirms (true), or just record the check (false). */
+  enforceDeposits?: boolean;
+  /** Per borrower: share of this week's sales refunded or charged back (0-1). */
+  refundRate?: Map<string, number>;
 }
 
 export interface WeekReport {
@@ -64,8 +73,8 @@ export class LendingAgent {
    */
   async runWeek(week: number, revenue: Map<string, Cents>, requests: AdvanceRequest[], settlement?: Settlement): Promise<WeekReport> {
     this.rates.clear();
-    await this.observe(week, revenue);
-    await this.collect(week, revenue, settlement);
+    await this.observe(week, revenue, settlement?.refundRate);
+    await this.collect(week, revenue, this.verifyDeposits(week, settlement));
     this.reviewHealth(week);
     await this.fundCommitments(week);
     for (const req of requests) await this.decide(req);
@@ -84,7 +93,41 @@ export class LendingAgent {
     return this.rates.get(ccy)!;
   }
 
-  private async observe(week: number, revenue: Map<string, Cents>) {
+  /**
+   * Compares the sales feed with the bank's own deposit records. If the bank shows less money than
+   * the feed claims, the shortfall is treated as not yet arrived: Keel never takes a share of money
+   * it cannot see in the account.
+   */
+  private verifyDeposits(week: number, settlement?: Settlement): Settlement | undefined {
+    if (!settlement?.deposits) return settlement;
+    const received = new Map(settlement.received);
+    for (const b of this.borrowers.values()) {
+      const seen = settlement.deposits.get(b.id);
+      if (!seen) continue;
+      const late = settlement.late.filter((l) => l.borrowerId === b.id).reduce((s, l) => s + l.amount, 0);
+      const expected = (received.get(b.id) ?? 0) + late;
+      const match = seen.amount >= expected;
+      this.ledger.revenueChecks.push({ week, borrowerId: b.id, currency: b.currency ?? PLATFORM_CURRENCY, expected, confirmed: seen.amount, depositIds: seen.ids, match });
+      if (!match && !settlement.enforceDeposits) {
+        this.ledger.log(week, `${b.name}: Airwallex lists ${fmtIn(seen.amount, b.currency)} in deposits against ${fmtIn(expected, b.currency)} in the sales feed (check only).`, "warn");
+      } else if (!match) {
+        received.set(b.id, Math.max(0, seen.amount - late));
+        this.ledger.log(
+          week,
+          `${b.name}: sales feed says ${fmtIn(expected, b.currency)} landed but Airwallex shows ${fmtIn(seen.amount, b.currency)} in deposits. Collecting only on what the bank confirms.`,
+          "warn",
+        );
+      }
+    }
+    return { ...settlement, received };
+  }
+
+  private async observe(week: number, revenue: Map<string, Cents>, refundRate?: Map<string, number>) {
+    for (const [id, rate] of refundRate ?? []) {
+      const hist = this.ledger.refundRates.get(id) ?? [];
+      hist.push(rate);
+      this.ledger.refundRates.set(id, hist);
+    }
     for (const [id, amount] of revenue) {
       const b = this.borrowers.get(id);
       // Health is judged in USD, so every borrower is measured on the same scale as the fund.
@@ -183,7 +226,7 @@ export class LendingAgent {
   private reviewHealth(week: number) {
     for (const b of this.borrowers.values()) {
       const prev = this.ledger.signals.get(b.id)?.tier;
-      const sig = computeSignals(this.ledger.revenue.get(b.id) ?? []);
+      const sig = computeSignals(this.ledger.revenue.get(b.id) ?? [], 3, this.ledger.refundRates.get(b.id));
       this.ledger.signals.set(b.id, sig);
       if (sig.tier !== "stressed" || prev === "stressed") continue;
 

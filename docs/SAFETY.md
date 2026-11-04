@@ -1,6 +1,6 @@
 # How Keel stays safe
 
-An agent that moves money has to be boring in nine specific ways. Each guarantee says what is promised, how the code enforces it, and the file and test that prove it. The same list is on the site at [keel.cards/safety](https://www.keel.cards/safety).
+An agent that moves money has to be boring in ten specific ways. Each guarantee says what is promised, how the code enforces it, and the file and test that prove it. The same list is on the site at [keel.cards/safety](https://www.keel.cards/safety).
 
 ## 1. The reserve floor is never breached
 
@@ -56,7 +56,16 @@ Repayment is a share of settled sales. A charge the wallet can't cover is never 
 Code: [`src/agent/lending-agent.ts`](../src/agent/lending-agent.ts) · [`src/ledger.ts`](../src/ledger.ts)  
 Tests: [`test/collections.test.ts`](../test/collections.test.ts) · [`test/scenario.test.ts`](../test/scenario.test.ts)
 
-## 7. The books match the bank
+## 7. Keel only counts money the bank can see
+
+**A sales feed that over-reports can't make Keel collect money that never arrived.**
+
+Each week Keel lists the deposits Airwallex recorded in every borrower account and compares them with the platform's sales feed. If the bank shows less, Keel collects only on the bank's figure and logs the gap.
+
+Code: [`src/agent/lending-agent.ts`](../src/agent/lending-agent.ts) · [`src/bank/airwallex.ts`](../src/bank/airwallex.ts)  
+Tests: [`test/roadmap.test.ts`](../test/roadmap.test.ts)
+
+## 8. The books match the bank
 
 **Keel's ledger equals the bank, every week and in every wallet.**
 
@@ -65,7 +74,7 @@ Each week the ledger is checked against the platform balance. At the end, every 
 Code: [`src/reconcile/portfolio.ts`](../src/reconcile/portfolio.ts)  
 Tests: [`test/portfolio.test.ts`](../test/portfolio.test.ts)
 
-## 8. Events from the bank are verified
+## 9. Events from the bank are verified
 
 **A forged or replayed webhook changes nothing.**
 
@@ -74,7 +83,7 @@ Airwallex webhooks are checked with HMAC-SHA256 over the timestamp and raw body,
 Code: [`src/bank/webhooks.ts`](../src/bank/webhooks.ts)  
 Tests: [`test/webhooks.test.ts`](../test/webhooks.test.ts)
 
-## 9. Secrets stay on the server
+## 10. Secrets stay on the server
 
 **No API key ever reaches a browser or the repository.**
 

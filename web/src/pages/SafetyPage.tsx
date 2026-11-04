@@ -57,6 +57,13 @@ export const GUARANTEES: Guarantee[] = [
     tests: ["test/collections.test.ts", "test/scenario.test.ts"],
   },
   {
+    title: "Keel only counts money the bank can see",
+    claim: "A sales feed that over-reports can't make Keel collect money that never arrived.",
+    how: "Each week Keel lists the deposits Airwallex recorded in every borrower account and compares them with the platform's sales feed. If the bank shows less, Keel collects only on the bank's figure and logs the gap.",
+    code: ["src/agent/lending-agent.ts", "src/bank/airwallex.ts"],
+    tests: ["test/roadmap.test.ts"],
+  },
+  {
     title: "The books match the bank",
     claim: "Keel's ledger equals the bank, every week and in every wallet.",
     how: "Each week the ledger is checked against the platform balance. At the end, every wallet (platform and each borrower, in each currency) is checked three ways: ledger, live balance, and Airwallex's own BALANCE_REPORT, allowing for the report's lag.",
@@ -104,7 +111,7 @@ export function SafetyPage() {
       <main className="page-main safety">
         <section className="safety-head">
           <p className="eyebrow">How Keel stays safe</p>
-          <h1 className="h2">An agent that moves money has to be boring in nine specific ways.</h1>
+          <h1 className="h2">An agent that moves money has to be boring in ten specific ways.</h1>
           <p className="section-lede">Each guarantee below says what is promised, how the code enforces it, and the file and test that prove it.</p>
           <dl className="safety-stats">
             <div>
@@ -113,7 +120,7 @@ export function SafetyPage() {
             </div>
             <div>
               <dt>Automated tests</dt>
-              <dd>40+</dd>
+              <dd>50+</dd>
             </div>
             <div>
               <dt>Floor breaches</dt>

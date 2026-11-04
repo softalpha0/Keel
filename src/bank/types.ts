@@ -71,4 +71,13 @@ export interface BankAdapter {
   convert?(req: ConversionRequest): Promise<Conversion>;
   /** The bank's own snapshot of every wallet, for reconciling the whole portfolio. */
   balanceSnapshot?(): Promise<BalanceSnapshot>;
+  /** Deposits that landed in an account since `since`, as the bank records them. Used to verify revenue. */
+  listDeposits?(accountId: string, currency: string, since: Date): Promise<Deposit[]>;
+}
+
+export interface Deposit {
+  id: string;
+  amount: Cents;
+  currency: string;
+  createdAt: string;
 }

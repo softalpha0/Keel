@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { Cents } from "../domain.js";
-import type { BalanceRow, BalanceSnapshot, BankAdapter, Conversion, ConversionRequest, Transfer, TransferRequest, TransferStatus } from "./types.js";
+import type { BalanceRow, BalanceSnapshot, BankAdapter, Conversion, ConversionRequest, Transfer, TransferRequest, TransferStatus, Deposit } from "./types.js";
 import type { WebhookHub } from "./webhooks.js";
 
 /**
@@ -23,6 +23,7 @@ const API = {
   balances: "/api/v1/balances/current",
   globalAccounts: "/api/v1/global_accounts",
   deposit: "/api/v1/simulation/deposit/create",
+  deposits: "/api/v1/deposits",
   disburse: "/api/v1/connected_account_transfers/create",
   disbursement: (id: string) => `/api/v1/connected_account_transfers/${id}`,
   disbursements: "/api/v1/connected_account_transfers",
@@ -202,6 +203,28 @@ export class AirwallexBank implements BankAdapter {
     await this.call(API.deposit, { onBehalfOf: accountId, body: { global_account_id: globalAccountId, amount: toMajor(amount), payer_name: "Customer revenue" } });
     this.staged.add(idempotencyKey);
     this.stagedStore?.add(idempotencyKey);
+  }
+
+  /**
+   * Deposits the bank recorded for an account since `since` (GET /api/v1/deposits, on behalf of the
+   * connected account). Failed or returned deposits are not money that arrived, so they are skipped.
+   */
+  async listDeposits(accountId: string, currency: string, since: Date): Promise<Deposit[]> {
+    const out: Deposit[] = [];
+    // A minute of slack for clock differences between us and the bank; callers de-duplicate by id.
+    const from = new Date(since.getTime() - 60_000).toISOString();
+    for (let page = 0; page < 5; page++) {
+      const r = await this.call<{ items?: { id: string; amount: number; currency: string; status?: string; created_at: string }[]; has_more?: boolean }>(
+        `${API.deposits}?from_created_at=${encodeURIComponent(from)}&page_num=${page}&page_size=100`,
+        { onBehalfOf: accountId },
+      );
+      for (const d of r.items ?? []) {
+        if (d.currency !== currency || /FAIL|REJECT|RETURN|CANCEL/i.test(d.status ?? "")) continue;
+        out.push({ id: d.id, amount: toCents(d.amount), currency: d.currency, createdAt: d.created_at });
+      }
+      if (!r.has_more) break;
+    }
+    return out;
   }
 
   /**

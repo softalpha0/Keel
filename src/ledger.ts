@@ -32,6 +32,19 @@ export interface Receivable {
   settledWeek?: number;
 }
 
+/** Each week Keel checks the platform's sales feed against the deposits Airwallex says actually landed. */
+export interface RevenueCheck {
+  week: number;
+  borrowerId: string;
+  currency: string;
+  /** What the platform's feed says landed this week (borrower currency). */
+  expected: Cents;
+  /** What the bank's deposit records show. */
+  confirmed: Cents;
+  depositIds: string[];
+  match: boolean;
+}
+
 export interface DecisionRecord {
   week: number;
   type: "advance-request" | "health-review" | "commitment";
@@ -55,6 +68,9 @@ export class Ledger {
   /** Repayments that were due but not collected yet: a short wallet, or customer payments that arrive late. */
   receivables: Receivable[] = [];
   revenue = new Map<string, Cents[]>();
+  /** Weekly refund and chargeback rate per borrower (0-1), when the platform reports it. */
+  refundRates = new Map<string, number[]>();
+  revenueChecks: RevenueCheck[] = [];
   signals = new Map<string, HealthSignals>();
   private seq = 0;
 

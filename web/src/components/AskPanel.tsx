@@ -1,7 +1,44 @@
 import { useEffect, useRef, useState } from "react";
 import { askKeel, type AskAnswer, type AskContext } from "../lib/ask";
 
-type Message = { role: "you" } & { text: string } | ({ role: "keel" } & AskAnswer);
+type Message = ({ role: "you" } & { text: string }) | ({ role: "keel"; ms: number; sources: string[] } & AskAnswer);
+
+/** What the answer leans on: the weeks and borrowers it names, shown as chips under it. */
+function sourcesOf(answer: string, context: AskContext): string[] {
+  const weeks = [...new Set([...answer.matchAll(/\bweeks? (\d{1,2})\b/gi)].map((m) => Number(m[1])))].sort((a, b) => a - b).map((w) => `Week ${w}`);
+  const names = context.borrowers.filter((b) => answer.includes(b.name.split(" ")[0]!)).map((b) => b.name);
+  return [...weeks.slice(0, 4), ...names];
+}
+
+/** The steps shown while Claude reads the log, so a few seconds of waiting reads as work, not a hang. */
+function Thinking({ context }: { context: AskContext }) {
+  const [t, setT] = useState(0);
+  useEffect(() => {
+    const started = Date.now();
+    const id = setInterval(() => setT(Date.now() - started), 100);
+    return () => clearInterval(id);
+  }, []);
+  const steps = [
+    `Reading the decision log · ${context.decisions.length} decisions`,
+    `Checking ${context.weeks.length} weeks of cash against the floor`,
+    "Writing the answer",
+  ];
+  const at = t < 900 ? 0 : t < 2000 ? 1 : 2;
+  return (
+    <div className="msg msg-keel msg-busy" aria-live="polite">
+      <div className="think-head">
+        <SparkIcon size={12} /> Thinking <span className="num muted">{(t / 1000).toFixed(1)}s</span>
+      </div>
+      <ol className="think-steps">
+        {steps.slice(0, at + 1).map((s, i) => (
+          <li key={s} className={i < at ? "is-done" : "is-now"}>
+            {s}
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
+}
 
 export function SparkIcon({ size = 14 }: { size?: number }) {
   return (
@@ -41,8 +78,9 @@ export function AskPanel({ open, onClose, context, suggestions, emptyAction }: {
     setDraft("");
     setMessages((m) => [...m, { role: "you", text: q }]);
     setBusy(true);
+    const started = Date.now();
     const a = await askKeel(q, context);
-    setMessages((m) => [...m, { role: "keel", ...a }]);
+    setMessages((m) => [...m, { role: "keel", ...a, ms: Date.now() - started, sources: sourcesOf(a.answer, context) }]);
     setBusy(false);
   };
 
@@ -97,18 +135,24 @@ export function AskPanel({ open, onClose, context, suggestions, emptyAction }: {
               </div>
             ) : (
               <div key={i} className="msg msg-keel">
+                <span className="think-done muted">
+                  <SparkIcon size={11} /> {m.by === "claude" ? `Thought for ${(m.ms / 1000).toFixed(1)}s` : "Answered from the decision log"}
+                </span>
                 <p>{m.answer}</p>
+                {m.sources.length > 0 && (
+                  <div className="msg-sources">
+                    {m.sources.map((s) => (
+                      <span key={s} className="pill">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <span className={`msg-by${m.by === "claude" ? " is-claude" : ""}`}>{m.by === "claude" ? "Claude" : "From the decision log"}</span>
               </div>
             ),
           )}
-          {busy && (
-            <div className="msg msg-keel msg-busy" aria-live="polite">
-              <span className="dot" />
-              <span className="dot" />
-              <span className="dot" />
-            </div>
-          )}
+          {busy && context && <Thinking context={context} />}
         </div>
 
         <form

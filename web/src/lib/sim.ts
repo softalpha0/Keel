@@ -19,6 +19,10 @@ export interface BorrowerSnap {
   holdbackBps: number;
   /** Currency the borrower sells and repays in. */
   currency: string;
+  /** Last week's refunds and chargebacks as a share of sales (0-1). */
+  refundRate?: number;
+  /** This week's sales feed checked against the bank's deposit records. */
+  verified?: { match: boolean; expected: number; confirmed: number };
 }
 
 export interface WeekSnap {
@@ -61,6 +65,8 @@ export function snapshot(agent: LendingAgent, r: WeekReport): WeekSnap {
         outstanding: l.outstanding(b.id),
         holdbackBps: b.holdbackBps,
         currency: b.currency ?? "USD",
+        refundRate: l.refundRates.get(b.id)?.at(-1),
+        verified: l.revenueChecks.filter((c) => c.borrowerId === b.id && c.week === r.week).map(({ match, expected, confirmed }) => ({ match, expected, confirmed }))[0],
       };
     }),
   };
@@ -138,6 +144,7 @@ export function useLiveSimulation(params: ScenarioParams, autoApprove: boolean) 
   const [snaps, setSnaps] = useState<WeekSnap[]>([]);
   const [decisions, setDecisions] = useState<DecisionRecord[]>([]);
   const [events, setEvents] = useState<Ledger["events"]>([]);
+  const [receipts, setReceipts] = useState<Ledger["receipts"]>([]);
   const [pending, setPending] = useState<PendingApproval | null>(null);
   const [playing, setPlaying] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -174,6 +181,7 @@ export function useLiveSimulation(params: ScenarioParams, autoApprove: boolean) 
     setSnaps([]);
     setDecisions([]);
     setEvents([]);
+    setReceipts([]);
     setInitial({
       week: 0,
       cash: s.fundSize,
@@ -205,6 +213,7 @@ export function useLiveSimulation(params: ScenarioParams, autoApprove: boolean) 
       setSnaps((prev) => [...prev, snapshot(s.agent, r)]);
       setDecisions([...s.ledger.decisions]);
       setEvents([...s.ledger.events]);
+      setReceipts([...s.ledger.receipts]);
       if (s.done) setPlaying(false);
     } finally {
       if (gen === generation.current) setBusy(false);
@@ -224,6 +233,7 @@ export function useLiveSimulation(params: ScenarioParams, autoApprove: boolean) 
     openingCash: initial?.cash ?? 0,
     decisions,
     events,
+    receipts,
     pending,
     playing,
     busy,

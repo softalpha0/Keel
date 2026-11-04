@@ -24,6 +24,7 @@ export function Landing() {
         <Operations run={run} />
         <Portfolio run={run} />
         <Guarantees run={run} />
+        <Roadmap />
         <Closing />
       </main>
       <Footer />
@@ -41,6 +42,7 @@ function Nav() {
           <a href="#late-money">Late money</a>
           <a href="#operations">Operations</a>
           <Link to="/safety">Safety</Link>
+          <a href="#roadmap">Roadmap</a>
           <Link to="/run">Live run</Link>
         </nav>
         <div className="nav-actions">
@@ -646,6 +648,64 @@ function Guarantees({ run }: { run: RunResult | null }) {
               <p>{g.text}</p>
             </Reveal>
           ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const SHIPPED = [
+  { n: "01", title: "Revenue checked against the bank", body: "Each week Keel lists the deposits Airwallex recorded in every borrower account and compares them with the sales feed. It never takes a share of money the bank can't show.", to: "/run", cta: "See the checks" },
+  { n: "02", title: "Audit trail export", body: "Every decision and money movement, with Airwallex ids, as one CSV for an auditor. Platform settings are saved, the first step towards stored portfolios.", to: "/run", cta: "Download one" },
+  { n: "03", title: "Refunds in underwriting", body: "Refunds and chargebacks feed the health tiers: watch at 6% of sales, stressed at 12%. Sales that come back are a warning revenue alone hides.", to: "/borrowers/nimbus", cta: "Nimbus's refunds" },
+  { n: "04", title: "Platform rules", body: "Each platform sets its own approval line, limit per borrower and advance size on the desk. The sandbox run reads the same rules from its environment.", to: "/desk", cta: "Set the rules" },
+  { n: "05", title: "Merchant requests and notifications", body: "Merchants request funds from the portal and Keel decides them in that week's run. Every payout, repayment and decision shows up as a notification.", to: "/portal/ledgerly", cta: "Request as Ledgerly" },
+];
+
+const NEXT = [
+  ["Live card revenue", "Read real merchant sales from Airwallex Payments Acceptance instead of simulated deposits."],
+  ["Accounts and storage", "A database, a login per platform with roles, and an append-only audit log a regulator can read."],
+  ["Deeper underwriting", "Customer concentration, seasonality, and backtesting the tiers on historical data before raising limits."],
+  ["Merchant onboarding", "KYB through Airwallex, signed advance agreements, and notifications by email and in the platform's own app."],
+  ["Compliance", "A licensing review in each market, lending disclosures, and who carries the credit risk: the platform or a funding partner."],
+  ["Pilots and pricing", "Two or three platforms that already see their merchants' sales; a fee per advance or a platform subscription."],
+];
+
+function Roadmap() {
+  return (
+    <section className="section" id="roadmap">
+      <div className="container">
+        <Reveal className="section-head">
+          <p className="eyebrow">Roadmap</p>
+          <h2 className="h2">Shipped in this build, and what comes next.</h2>
+          <p className="section-lede">The first five run in the demo today, against the simulated bank and on the Airwallex sandbox. The rest is what a platform would need before lending real money.</p>
+        </Reveal>
+        <ol className="roadmap">
+          {SHIPPED.map((s) => (
+            <li key={s.n} className="rm-item">
+              <span className="rm-n num">{s.n}</span>
+              <div>
+                <div className="rm-title">
+                  <h3>{s.title}</h3>
+                  <span className="pill pill-good">Live in the demo</span>
+                </div>
+                <p>{s.body}</p>
+                <Link to={s.to} className="rm-link">
+                  {s.cta} <span className="arrow">→</span>
+                </Link>
+              </div>
+            </li>
+          ))}
+        </ol>
+        <div className="rm-next">
+          <h3 className="rm-next-title">Next</h3>
+          <ul>
+            {NEXT.map(([t, d]) => (
+              <li key={t}>
+                <strong>{t}.</strong> <span className="secondary">{d}</span>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>

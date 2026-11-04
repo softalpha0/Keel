@@ -29,7 +29,13 @@ const startedAt = new Date();
 
 if (useLlm && !process.env.ANTHROPIC_API_KEY) console.warn("--llm set but ANTHROPIC_API_KEY is empty; memos will fall back to rules.\n");
 
-const scenario = demoScenario();
+// Platform controls can be set per environment, e.g. KEEL_APPROVAL_LINE=30000 for a $30K approval line.
+const num = (name: string) => (process.env[name] ? Number(process.env[name]) : undefined);
+const scenario = demoScenario({
+  ...(num("KEEL_APPROVAL_LINE") !== undefined && { approvalLineDollars: num("KEEL_APPROVAL_LINE") }),
+  ...(num("KEEL_MAX_EXPOSURE_PCT") !== undefined && { maxExposurePct: num("KEEL_MAX_EXPOSURE_PCT") }),
+  ...(num("KEEL_ADVANCE_WEEKS") !== undefined && { advanceWeeks: num("KEEL_ADVANCE_WEEKS") }),
+});
 const bank = useAirwallex ? AirwallexBank.fromEnv() : undefined;
 if (useAirwallex) {
   // Point each simulated borrower at its real sandbox connected account.
@@ -95,6 +101,8 @@ const run0 = await runScenario(scenario, {
   advisor: useLlm ? new ClaudeAdvisor() : new RulesAdvisor(),
   bank,
   policy,
+  // On the sandbox the deposit check reports by default; KEEL_VERIFY_DEPOSITS=enforce makes it gate collections.
+  verifyDeposits: (process.env.KEEL_VERIFY_DEPOSITS as "enforce" | "report" | "off" | undefined) ?? undefined,
   platformAccountId: bank?.platformAccountId,
   onWeek: (r, agent) => {
     const tiers = [...agent.borrowers.values()]
@@ -122,6 +130,16 @@ console.log("\n== Book");
 for (const a of ledger.advances) {
   console.log(`   ${a.id} ${a.borrowerId.padEnd(9)} principal ${fmt(a.principal).padStart(8)}  fee ${fmt(a.fee).padStart(6)}  outstanding ${fmt(a.outstanding).padStart(8)}  (week ${a.disbursedWeek})`);
 }
+if (ledger.revenueChecks.length) {
+  const bad = ledger.revenueChecks.filter((c) => !c.match);
+  console.log(
+    `\n== Revenue verified against ${bank ? "Airwallex deposits" : "the bank's deposits"}: ${ledger.revenueChecks.length - bad.length} of ${ledger.revenueChecks.length} borrower-weeks match the sales feed` +
+      (bad.length ? `; ${bad.length} collected on the bank's lower figure` : ""),
+  );
+} else if (bank) {
+  console.log("\n== Revenue check: Airwallex listed no deposits to verify against; collected on the sales feed.");
+}
+
 const ok = reports.every((r) => r.floorHeld && r.reconciled);
 console.log(`\nFloor held every week and ledger reconciled every week: ${ok ? "YES" : "NO"}`);
 
@@ -169,6 +187,12 @@ if (record) {
     portfolio,
     approvals: approveMode,
     webhooks: hub?.stats,
+    policy: {
+      reserveFloor: run0.agent.cfg.reserveFloor,
+      approvalThreshold: run0.agent.cfg.approvalThreshold,
+      maxBorrowerExposureBps: run0.agent.cfg.maxBorrowerExposureBps,
+      advanceMultipleWeeks: run0.agent.cfg.advanceMultipleWeeks,
+    },
   });
   mkdirSync("web/public/runs", { recursive: true });
   writeFileSync("web/public/runs/latest.json", JSON.stringify(run, null, 2));

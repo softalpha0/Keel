@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import type { DecisionRecord } from "../../../src/ledger";
 import { defaultParams, type ScenarioParams } from "../../../src/sim/scenario";
+import { clearPortalRequests, loadParams, saveParams } from "../lib/workspace";
+import { auditCsv, download } from "../lib/audit";
 import { ThemeToggle, Wordmark } from "../components/Brand";
 import { CashChart } from "../components/CashChart";
 import { OptionBars } from "../components/OptionBars";
@@ -16,7 +18,11 @@ import { compactDecisions, compactEvents, type AskContext } from "../lib/ask";
 const NAMES: Record<string, string> = { kopi: "Kopi Roasters", nimbus: "Nimbus Apparel", ledgerly: "Ledgerly SaaS" };
 
 export function Console() {
-  const [params, setParams] = useState<ScenarioParams>(defaultParams);
+  const [params, setParamsState] = useState<ScenarioParams>(loadParams);
+  const setParams = (p: ScenarioParams) => {
+    saveParams(p);
+    setParamsState(p);
+  };
   const [autoApprove, setAutoApprove] = useState(false);
   const sim = useLiveSimulation(params, autoApprove);
   const [selected, setSelected] = useState<number | null>(null);
@@ -174,13 +180,45 @@ export function Console() {
             </div>
           </section>
 
+          {params.portalRequests.length > 0 && (
+            <section className="card portal-queue">
+              <div>
+                <strong>
+                  {params.portalRequests.length} request{params.portalRequests.length > 1 ? "s" : ""} from the merchant portal
+                </strong>
+                <span className="muted">
+                  {" "}
+                  · {params.portalRequests.map((r) => `${NAMES[r.borrowerId]} ${money(r.amountDollars * 100)} (W${r.week})`).join(", ")}. Keel decides each in that week of the run.
+                </span>
+              </div>
+              <button
+                className="btn btn-ghost btn-sm"
+                onClick={() => {
+                  clearPortalRequests();
+                  setParams({ ...params, portalRequests: [] });
+                }}
+              >
+                Clear
+              </button>
+            </section>
+          )}
+
           <DecisionPanel decision={decision} floor={latest?.floor ?? 0} week={week} decisions={sim.decisions} selected={selected} onSelect={setSelected} />
         </div>
 
         <aside className="console-side">
+          <PlatformRules params={params} onChange={setParams} />
           <WhatIf params={params} onChange={setParams} />
           <Borrowers snap={latest} />
           <Activity events={sim.events} />
+          {sim.decisions.length > 0 && (
+            <button
+              className="btn btn-sm audit-btn"
+              onClick={() => download(`keel-audit-desk-week${week}.csv`, auditCsv({ decisions: sim.decisions, movements: sim.receipts, names: NAMES, source: `credit desk demo, week ${week}` }))}
+            >
+              Download audit trail (CSV)
+            </button>
+          )}
         </aside>
       </main>
 
@@ -366,12 +404,13 @@ function DecisionPanel({
 
 function WhatIf({ params, onChange }: { params: ScenarioParams; onChange: (p: ScenarioParams) => void }) {
   const set = (patch: Partial<ScenarioParams>) => onChange({ ...params, ...patch });
-  const isDefault = JSON.stringify(params) === JSON.stringify(defaultParams);
+  const keys = ["shockPct", "shockWeek", "reserveFloorDollars", "kopiDecline", "nimbusRefundPct", "bouncedPayment"] as const;
+  const isDefault = keys.every((k) => params[k] === defaultParams[k]);
   return (
     <section className="card side-card">
       <div className="side-head">
         <h2 className="card-title">What if…</h2>
-        <button className="btn btn-ghost btn-sm" onClick={() => onChange(defaultParams)} disabled={isDefault}>
+        <button className="btn btn-ghost btn-sm" onClick={() => onChange({ ...params, ...Object.fromEntries(keys.map((k) => [k, defaultParams[k]])) })} disabled={isDefault}>
           Defaults
         </button>
       </div>
@@ -404,6 +443,72 @@ function WhatIf({ params, onChange }: { params: ScenarioParams; onChange: (p: Sc
           max={8}
           step={1}
           onChange={(v) => set({ kopiDecline: v / 100 })}
+        />
+        <Slider
+          label="Nimbus refunds after the shock"
+          value={params.nimbusRefundPct}
+          display={`${params.nimbusRefundPct}% of sales`}
+          min={0}
+          max={20}
+          step={1}
+          onChange={(v) => set({ nimbusRefundPct: v })}
+        />
+        <label className="switch switch-row">
+          <span>
+            A Ledgerly customer payment bounces (W5)
+            <span className="muted switch-note">The bank shows less than the sales feed</span>
+          </span>
+          <input type="checkbox" checked={params.bouncedPayment} onChange={(e) => set({ bouncedPayment: e.target.checked })} />
+          <span className="switch-track" aria-hidden="true">
+            <span className="switch-thumb" />
+          </span>
+        </label>
+      </div>
+    </section>
+  );
+}
+
+/** The platform's own lending rules. Saved in this browser and used by every run. */
+function PlatformRules({ params, onChange }: { params: ScenarioParams; onChange: (p: ScenarioParams) => void }) {
+  const set = (patch: Partial<ScenarioParams>) => onChange({ ...params, ...patch });
+  const keys = ["approvalLineDollars", "maxExposurePct", "advanceWeeks"] as const;
+  const isDefault = keys.every((k) => params[k] === defaultParams[k]);
+  return (
+    <section className="card side-card">
+      <div className="side-head">
+        <h2 className="card-title">Platform rules</h2>
+        <button className="btn btn-ghost btn-sm" onClick={() => onChange({ ...params, ...Object.fromEntries(keys.map((k) => [k, defaultParams[k]])) })} disabled={isDefault}>
+          Defaults
+        </button>
+      </div>
+      <p className="card-sub">Your lending policy. Saved for this browser; changing it restarts the run.</p>
+      <div className="sliders">
+        <Slider
+          label="Needs a person above"
+          value={params.approvalLineDollars}
+          display={money(params.approvalLineDollars * 100)}
+          min={5_000}
+          max={50_000}
+          step={5_000}
+          onChange={(v) => set({ approvalLineDollars: v })}
+        />
+        <Slider
+          label="Limit per borrower"
+          value={params.maxExposurePct}
+          display={`${params.maxExposurePct}% of fund`}
+          min={10}
+          max={50}
+          step={5}
+          onChange={(v) => set({ maxExposurePct: v })}
+        />
+        <Slider
+          label="Advance size"
+          value={params.advanceWeeks}
+          display={`${params.advanceWeeks} weeks of sales`}
+          min={2}
+          max={8}
+          step={1}
+          onChange={(v) => set({ advanceWeeks: v })}
         />
       </div>
     </section>
@@ -452,7 +557,21 @@ function Borrowers({ snap }: { snap: WeekSnap | null }) {
                   </Link>
                   {b.currency !== "USD" && <span className="pill ccy-chip">repays in {b.currency}</span>}
                 </div>
-                <div className="card-sub">{borrowerSector[b.id]}</div>
+                <div className="card-sub">
+                  {borrowerSector[b.id]}
+                  {b.refundRate !== undefined && <> · refunds {(b.refundRate * 100).toFixed(1)}%</>}
+                </div>
+                {b.verified && (
+                  <div className={`verify ${b.verified.match ? "" : "is-bad"}`} title="This week's sales feed checked against the deposits the bank recorded">
+                    {b.verified.match ? (
+                      <>
+                        <Check size={11} /> Revenue matches bank deposits
+                      </>
+                    ) : (
+                      <>! Bank shows {money(b.verified.expected - b.verified.confirmed)} less than the feed</>
+                    )}
+                  </div>
+                )}
               </div>
               <TierBadge tier={b.tier} />
             </div>
@@ -476,22 +595,37 @@ function Borrowers({ snap }: { snap: WeekSnap | null }) {
   );
 }
 
+type Feed = "all" | "money" | "alerts";
+const isMoney = (t: string) => /collected|paid out|disbursed|advance|catch-up|converted|charge/i.test(t);
+
 function Activity({ events }: { events: { week: number; level: "info" | "warn"; text: string }[] }) {
   const ref = useRef<HTMLOListElement>(null);
+  const [filter, setFilter] = useState<Feed>("all");
+  const shown = events.filter((e) => filter === "all" || (filter === "alerts" ? e.level === "warn" : isMoney(e.text)));
+  const counts = { all: events.length, money: events.filter((e) => isMoney(e.text)).length, alerts: events.filter((e) => e.level === "warn").length };
   useEffect(() => {
     ref.current?.scrollTo({ top: ref.current.scrollHeight, behavior: "smooth" });
-  }, [events.length]);
+  }, [shown.length]);
   return (
     <section className="card side-card">
       <div className="side-head">
         <h2 className="card-title">Activity</h2>
         <span className="muted num">{events.length}</span>
       </div>
+      {events.length > 0 && (
+        <div className="chips" role="tablist" aria-label="Filter activity">
+          {(["all", "money", "alerts"] as const).map((f) => (
+            <button key={f} role="tab" aria-selected={filter === f} className={`chip${filter === f ? " is-on" : ""}`} onClick={() => setFilter(f)}>
+              {f === "all" ? "All" : f === "money" ? "Money" : "Alerts"} <span className="num">{counts[f]}</span>
+            </button>
+          ))}
+        </div>
+      )}
       {events.length === 0 ? (
         <p className="empty empty-sm">Events appear here as the agent works.</p>
       ) : (
         <ol className="feed" ref={ref}>
-          {events.map((e, i) => (
+          {shown.map((e, i) => (
             <li key={i} className={e.level === "warn" ? "is-warn" : ""}>
               <span className="feed-week num">W{e.week}</span>
               <span className="feed-text">{e.text}</span>

@@ -1,4 +1,5 @@
 import { usd, type AdvanceRequest, type Borrower, type Cents, type Commitment } from "../domain.js";
+import type { PolicyConfig } from "../policy/engine.js";
 
 /** Small seeded PRNG so every demo run is identical. */
 function mulberry32(seed: number) {
@@ -27,6 +28,12 @@ export interface Scenario {
   lostResponseWeeks: number[];
   /** Customer payments that settle after the week they were earned (the Kit 7 underpayment). */
   latePayments: LatePayment[];
+  /** Share of each week's sales refunded or charged back (0-1). */
+  refunds?: (borrowerId: string, week: number) => number;
+  /** Weeks where a deposit lands short at the bank, though the sales feed counted it in full. */
+  bouncedDeposits?: { borrowerId: string; week: number; share: number }[];
+  /** The platform's own lending rules, on top of the defaults. */
+  policy?: Partial<PolicyConfig>;
 }
 
 export interface LatePayment {
@@ -46,6 +53,16 @@ export interface ScenarioParams {
   reserveFloorDollars: number;
   /** Kopi weekly revenue decline, as a fraction of week-0 revenue. */
   kopiDecline: number;
+  /** Nimbus refund and chargeback rate after the shock, in percent of sales. */
+  nimbusRefundPct: number;
+  /** A customer payment to Ledgerly bounces in week 5: the bank shows less than the sales feed. */
+  bouncedPayment: boolean;
+  /** Platform controls. */
+  approvalLineDollars: number;
+  maxExposurePct: number;
+  advanceWeeks: number;
+  /** Advance requests merchants sent from the portal. Decided in `week`. */
+  portalRequests: { borrowerId: string; amountDollars: number; week: number }[];
 }
 
 export const defaultParams: ScenarioParams = {
@@ -54,6 +71,12 @@ export const defaultParams: ScenarioParams = {
   shockWeek: 7,
   reserveFloorDollars: 30_000,
   kopiDecline: 0.04,
+  nimbusRefundPct: 4,
+  bouncedPayment: false,
+  approvalLineDollars: 20_000,
+  maxExposurePct: 35,
+  advanceWeeks: 4,
+  portalRequests: [],
 };
 
 export function demoScenario(overrides: Partial<ScenarioParams> = {}): Scenario {
@@ -87,6 +110,7 @@ export function demoScenario(overrides: Partial<ScenarioParams> = {}): Scenario 
     // SGD drifts around 0.74 USD, enough to move Kopi's repayments in dollar terms.
     fx: { SGD: (w) => Number((0.742 + 0.006 * Math.sin(w / 1.7) - 0.0015 * w).toFixed(4)) },
     requests: [
+      ...p.portalRequests.map((r, i) => ({ id: `req_portal_${i + 1}`, borrowerId: r.borrowerId, amount: usd(r.amountDollars), week: r.week, source: "portal" as const })),
       { id: "req_1", borrowerId: "kopi", amount: usd(22_000), week: 3 },
       { id: "req_2", borrowerId: "ledgerly", amount: usd(20_000), week: 4 },
       // The Kit 7 moment: the full third advance would breach the reserve floor.
@@ -98,5 +122,13 @@ export function demoScenario(overrides: Partial<ScenarioParams> = {}): Scenario 
     lostResponseWeeks: [6],
     // Ledgerly's enterprise customers pay 60% of week 6 invoices a week late.
     latePayments: [{ borrowerId: "ledgerly", week: 6, share: 0.6, arrivesWeek: 7 }],
+    // Low, steady refunds; Nimbus's climb after its shock as unhappy customers return orders.
+    refunds: (id, w) => ({ kopi: 0.02, ledgerly: 0.01 })[id as "kopi"] ?? (w < p.shockWeek ? 0.03 : p.nimbusRefundPct / 100),
+    bouncedDeposits: p.bouncedPayment ? [{ borrowerId: "ledgerly", week: 5, share: 0.3 }] : [],
+    policy: {
+      approvalThreshold: usd(p.approvalLineDollars),
+      maxBorrowerExposureBps: Math.round(p.maxExposurePct * 100),
+      advanceMultipleWeeks: p.advanceWeeks,
+    },
   };
 }

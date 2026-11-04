@@ -11,6 +11,7 @@ import { describeAsOf } from "../../../src/reconcile/portfolio";
 import { AskPanel, SparkIcon } from "../components/AskPanel";
 import { compactDecisions, compactEvents } from "../lib/ask";
 import type { WeekSnap } from "../lib/sim";
+import { auditCsv, download } from "../lib/audit";
 
 export function RunPage() {
   const [params, setParams] = useSearchParams();
@@ -192,6 +193,23 @@ function Run({ run }: { run: RunRecord }) {
           Run <span className="mono">{run.runId}</span> · {new Date(run.startedAt).toLocaleString()} · {money(run.fund.size)} fund · floor{" "}
           {money(run.fund.reserveFloor - offset)} inside the fund
         </p>
+        {run.policy && (
+          <p className="muted run-meta">
+            Platform rules: a person approves anything over {money(run.policy.approvalThreshold)} · limit per borrower {run.policy.maxBorrowerExposureBps / 100}% of the fund · advances sized at{" "}
+            {run.policy.advanceMultipleWeeks} weeks of sales
+          </p>
+        )}
+        <div className="run-actions">
+          <button
+            className="btn btn-sm"
+            onClick={() => download(`keel-audit-${run.startedAt.slice(0, 10)}.csv`, auditCsv({ decisions: run.decisions, movements: run.movements, names, source: `${live ? "Airwallex sandbox" : "simulated"} run ${run.runId}` }))}
+          >
+            Download audit trail (CSV)
+          </button>
+          <button className="btn btn-ghost btn-sm" onClick={() => download(`keel-run-${run.startedAt.slice(0, 10)}.json`, JSON.stringify(run, null, 2), "application/json")}>
+            Raw run file (JSON)
+          </button>
+        </div>
         {run.balanceReport && (
           <p className="muted run-meta">
             Airwallex <span className="mono">BALANCE_REPORT</span>{" "}
@@ -369,6 +387,8 @@ function Run({ run }: { run: RunRecord }) {
         </section>
       )}
 
+      {run.revenueChecks && run.revenueChecks.length > 0 && <RevenueChecks checks={run.revenueChecks} names={names} live={live} />}
+
       {receivables.length > 0 && (
         <section className="card panel">
           <div className="card-header">
@@ -433,5 +453,54 @@ function Run({ run }: { run: RunRecord }) {
         </ol>
       </section>
     </div>
+  );
+}
+
+/** Each borrower-week: what the sales feed said landed vs the deposits the bank recorded. */
+function RevenueChecks({ checks, names, live }: { checks: NonNullable<RunRecord["revenueChecks"]>; names: Record<string, string>; live: boolean }) {
+  const ids = [...new Set(checks.map((c) => c.borrowerId))];
+  const weeks = [...new Set(checks.map((c) => c.week))].sort((a, b) => a - b);
+  const bad = checks.filter((c) => !c.match);
+  return (
+    <section className="card panel">
+      <div className="card-header">
+        <div>
+          <h2 className="card-title">Revenue checked against {live ? "Airwallex" : "the bank's"} deposits</h2>
+          <p className="card-sub">
+            Each week Keel lists the deposits that actually landed in every borrower's account and compares them with the platform's sales feed. {checks.length - bad.length} of {checks.length}{" "}
+            borrower-weeks match{bad.length ? `; on ${bad.length}, Keel collected only on the bank's lower figure` : ""}.
+          </p>
+        </div>
+      </div>
+      <div className="panel-body table-wrap">
+        <table className="table vgrid">
+          <thead>
+            <tr>
+              <th scope="col">Borrower</th>
+              {weeks.map((w) => (
+                <th key={w} scope="col" className="num">
+                  W{w}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {ids.map((id) => (
+              <tr key={id}>
+                <th scope="row">{names[id] ?? id}</th>
+                {weeks.map((w) => {
+                  const c = checks.find((x) => x.borrowerId === id && x.week === w);
+                  return (
+                    <td key={w} className="num" title={c ? `feed ${moneyIn(c.expected, c.currency)} · bank ${moneyIn(c.confirmed, c.currency)} · ${c.depositIds.join(", ")}` : undefined}>
+                      {!c ? "—" : c.match ? <Check size={12} /> : <span className="vgrid-bad">−{moneyIn(c.expected - c.confirmed, c.currency)}</span>}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
   );
 }

@@ -1661,3 +1661,315 @@
 .rh-dot.is-bad {
   background: var(--critical);
 }
+
+/* ---------- Platform rules, verification, activity filters, audit export ---------- */
+.switch-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-left: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--ink-2);
+}
+
+.switch-row > span:first-child {
+  display: grid;
+  gap: 2px;
+}
+
+.switch-note {
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.verify {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 4px;
+  font-size: 11.5px;
+  color: var(--good);
+}
+
+.verify.is-bad {
+  color: var(--warning);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 18px 8px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1px var(--ring);
+  color: var(--ink-2);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chip .num {
+  color: var(--ink-3);
+}
+
+.chip.is-on {
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--ring-strong);
+  color: var(--ink);
+}
+
+.audit-btn {
+  justify-self: stretch;
+}
+
+.portal-queue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  font-size: 13.5px;
+  box-shadow: var(--edge), inset 3px 0 0 var(--accent);
+}
+
+/* ---------- Merchant portal: sales card, notifications, request form ---------- */
+.portal-sales {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+}
+
+.ps-big {
+  font-size: 32px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.ps-note {
+  margin: 0;
+  font-size: 12.5px;
+}
+
+.delta-pill {
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.delta-pill.is-up {
+  background: var(--good-wash);
+  color: var(--good-ink);
+}
+
+.delta-pill.is-down {
+  background: color-mix(in oklab, var(--critical) 16%, transparent);
+  color: var(--critical);
+}
+
+.notes {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0;
+  padding: 0;
+  list-style: none;
+}
+
+.note {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 12px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--ring);
+}
+
+.note strong {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.note p {
+  margin: 4px 0 0;
+  font-size: 13px;
+}
+
+.note-icon {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--surface);
+  box-shadow: inset 0 0 0 1px var(--ring);
+  color: var(--ink-2);
+}
+
+.note-in .note-icon,
+.note-ok .note-icon {
+  color: var(--good-ink);
+}
+
+.note-warn .note-icon {
+  color: var(--warning);
+}
+
+.note-meta {
+  display: block;
+  margin-top: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  overflow-wrap: anywhere;
+}
+
+.po-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 10px;
+}
+
+.po-form label {
+  display: grid;
+  gap: 6px;
+}
+
+.po-form input {
+  width: 150px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--surface-2);
+  box-shadow: inset 0 0 0 1px var(--ring-strong);
+  color: var(--ink);
+  font: inherit;
+}
+
+.po-hint {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: 12px;
+}
+
+.po-sent {
+  margin: 0;
+  color: var(--good-ink);
+  font-size: 13.5px;
+}
+
+/* ---------- Ask Keel: thinking trace and sources ---------- */
+.msg-busy {
+  display: grid;
+  gap: 8px;
+}
+
+.think-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.think-steps {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0 0 0 12px;
+  border-left: 1px solid var(--ring-strong);
+  list-style: none;
+  font-size: 12.5px;
+}
+
+.think-steps li.is-done {
+  color: var(--ink-3);
+}
+
+.think-steps li.is-done::before {
+  content: "✓ ";
+  color: var(--good-ink);
+}
+
+.think-steps li.is-now {
+  color: var(--ink);
+  animation: blink 1.2s infinite ease-in-out;
+}
+
+.think-done {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+  font-size: 11.5px;
+}
+
+.msg-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 4px;
+}
+
+.msg-sources .pill {
+  font-size: 11px;
+}
+
+.run-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.vgrid td {
+  text-align: center;
+  color: var(--good-ink);
+}
+
+.vgrid-bad {
+  color: var(--warning);
+  font-size: 12px;
+}
+
+.kpis.kpis-6 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 760px) {
+  .kpis.kpis-6 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.portal-notices li.note {
+  padding: 12px;
+  border-left: 0;
+}
+
+.portal-notices .side-head {
+  min-height: 0;
+  padding: 0;
+}
+
+/* Phones: the wordmark already goes home, so drop the Overview link to keep the bar on screen. */
+@media (max-width: 480px) {
+  .topbar-actions a[href="/"] {
+    display: none;
+  }
+}

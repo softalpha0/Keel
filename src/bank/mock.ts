@@ -1,5 +1,5 @@
 import { PLATFORM_CURRENCY, type Cents } from "../domain.js";
-import type { BalanceSnapshot, BankAdapter, Conversion, ConversionRequest, Transfer, TransferRequest } from "./types.js";
+import type { BalanceSnapshot, BankAdapter, Conversion, ConversionRequest, Transfer, TransferRequest, Deposit } from "./types.js";
 
 const wallet = (accountId: string, currency = PLATFORM_CURRENCY) => `${accountId}|${currency}`;
 
@@ -16,6 +16,9 @@ export class MockBank implements BankAdapter {
   private conversions = new Map<string, Conversion>();
   private rates = new Map<string, number>();
   private stagedKeys = new Set<string>();
+  private deposits: (Deposit & { accountId: string; at: number })[] = [];
+  /** Demo fault: deposits matching this land short, as if a customer payment bounced after the sales feed counted it. */
+  private shortDeposits: { match: (accountId: string, key: string) => boolean; share: number }[] = [];
   private faults: { match: (r: TransferRequest) => boolean; mode: "lost-response" | "reject" }[] = [];
   private seq = 0;
   /** Count of transfer calls that actually moved money. Tests use it to prove no double-pay. */
@@ -87,7 +90,19 @@ export class MockBank implements BankAdapter {
   async stageRevenue(accountId: string, amount: Cents, idempotencyKey: string, currency?: string): Promise<void> {
     if (this.stagedKeys.has(idempotencyKey)) return;
     this.stagedKeys.add(idempotencyKey);
-    this.fund(accountId, currency ?? PLATFORM_CURRENCY, amount);
+    const short = this.shortDeposits.find((s) => s.match(accountId, idempotencyKey));
+    const landed = short ? Math.round(amount * (1 - short.share)) : amount;
+    const ccy = currency ?? PLATFORM_CURRENCY;
+    this.fund(accountId, ccy, landed);
+    this.deposits.push({ id: `dep_${this.deposits.length + 1}`, accountId, amount: landed, currency: ccy, createdAt: new Date().toISOString(), at: Date.now() });
+  }
+
+  async listDeposits(accountId: string, currency: string, since: Date): Promise<Deposit[]> {
+    return this.deposits.filter((d) => d.accountId === accountId && d.currency === currency && d.at >= since.getTime()).map(({ id, amount, currency, createdAt }) => ({ id, amount, currency, createdAt }));
+  }
+
+  injectShortDeposit(match: (accountId: string, key: string) => boolean, share: number) {
+    this.shortDeposits.push({ match, share });
   }
 
   async fxRate(sell: string, buy: string): Promise<number> {

@@ -33,6 +33,10 @@ export interface RunRecord {
   approvals?: string;
   /** Signed Airwallex webhook deliveries during the run. */
   webhooks?: { accepted: number; rejected: number; duplicates: number };
+  /** Each week's sales feed checked against the deposits Airwallex recorded. */
+  revenueChecks?: Ledger["revenueChecks"];
+  /** The platform rules this run used. */
+  policy?: { reserveFloor: Cents; approvalThreshold: Cents; maxBorrowerExposureBps: number; advanceMultipleWeeks: number };
 }
 
 export interface BalanceReportRef {
@@ -56,6 +60,7 @@ export function buildRunRecord(args: {
   portfolio?: PortfolioCheck;
   approvals?: string;
   webhooks?: RunRecord["webhooks"];
+  policy?: RunRecord["policy"];
 }): RunRecord {
   const { ledger, reports } = args;
   return {
@@ -79,6 +84,8 @@ export function buildRunRecord(args: {
     ...(args.portfolio && { portfolio: args.portfolio }),
     ...(args.approvals && { approvals: args.approvals }),
     ...(args.webhooks && { webhooks: args.webhooks }),
+    ...(ledger.revenueChecks.length && { revenueChecks: ledger.revenueChecks }),
+    ...(args.policy && { policy: args.policy }),
   };
 }
 

@@ -60,6 +60,16 @@ beforeAll(async () => {
         if (o.polls >= 2) o.status = "SETTLED";
         return send(200, o);
       }
+      if (url.pathname === "/api/v1/deposits") {
+        return send(200, {
+          has_more: false,
+          items: [
+            { id: "dep_a", amount: 120.5, currency: "USD", status: "SETTLED", created_at: "2026-11-04T10:00:00Z" },
+            { id: "dep_b", amount: 99, currency: "SGD", status: "SETTLED", created_at: "2026-11-04T10:00:00Z" },
+            { id: "dep_c", amount: 50, currency: "USD", status: "FAILED", created_at: "2026-11-04T10:00:00Z" },
+          ],
+        });
+      }
       if (url.pathname === "/api/v1/platform_reports/create") return send(201, { id: "rpt_1", status: "PENDING" });
       if (url.pathname === "/api/v1/platform_reports/rpt_1") {
         return send(200, ++reportPolls < 2 ? { id: "rpt_1", status: "PENDING" } : { id: "rpt_1", status: "COMPLETED", download_url: `${base}/files/rpt_1.csv` });
@@ -168,5 +178,12 @@ describe("AirwallexBank against a fake sandbox", () => {
     holdForWebhook = false;
     expect(t).toMatchObject({ status: "settled", confirmedBy: "webhook" });
     expect(Date.now() - t0).toBeLessThan(3_000);
+  });
+
+  it("lists a connected account's deposits in one currency, skipping failed ones", async () => {
+    const deposits = await bank().listDeposits("acct_kopi", "USD", new Date("2026-11-04T09:59:00Z"));
+    expect(deposits).toEqual([{ id: "dep_a", amount: 12_050, currency: "USD", createdAt: "2026-11-04T10:00:00Z" }]);
+    const call = [...seen].reverse().find((s) => s.path === "/api/v1/deposits")!;
+    expect(call.headers["x-on-behalf-of"]).toBe("acct_kopi");
   });
 });

@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+import { loadParams } from "../lib/workspace";
 import { Link, useParams } from "react-router-dom";
 import { ThemeToggle, Wordmark } from "../components/Brand";
 import { RevenueBars } from "../components/RevenueBars";
@@ -12,7 +14,7 @@ const IDS = ["kopi", "nimbus", "ledgerly"];
 /** Everything Keel knows and did about one borrower: the operator's view. */
 export function BorrowerPage() {
   const { id = "" } = useParams();
-  const run = useDemoRun();
+  const run = useDemoRun(useMemo(loadParams, []));
   if (!IDS.includes(id)) return <NotFound />;
   return (
     <div className="console">
@@ -68,6 +70,8 @@ function Borrower({ run, id }: { run: RunResult; id: string }) {
   const sandbox = live.state === "ready" ? live.run : null;
   const sandboxMoves = sandbox?.movements.filter((m) => m.borrowerId === id && m.status === "settled") ?? [];
 
+  const checks = run.ledger.revenueChecks.filter((c) => c.borrowerId === id);
+  const checksBad = checks.filter((c) => !c.match).length;
   return (
     <div className="borrower-page">
       <section className="bp-head">
@@ -87,7 +91,7 @@ function Borrower({ run, id }: { run: RunResult; id: string }) {
         </div>
       </section>
 
-      <section className="kpis" aria-label={`${b.name} at a glance`}>
+      <section className="kpis kpis-6" aria-label={`${b.name} at a glance`}>
         <div className="kpi card kpi-hero">
           <div className="kpi-label">Owed now</div>
           <div className="kpi-value">{money(end.outstanding)}</div>
@@ -102,6 +106,18 @@ function Borrower({ run, id }: { run: RunResult; id: string }) {
           <div className="kpi-label">Repaid</div>
           <div className="kpi-value">{money(repaid)}</div>
           <div className="kpi-note">{pct(b.holdbackBps)} of weekly sales</div>
+        </div>
+        <div className="kpi card">
+          <div className="kpi-label">Refunds last week</div>
+          <div className="kpi-value">{end.refundRate !== undefined ? `${(end.refundRate * 100).toFixed(1)}%` : "—"}</div>
+          <div className="kpi-note">watch at 6% · stressed at 12% of sales</div>
+        </div>
+        <div className="kpi card">
+          <div className="kpi-label">Revenue vs bank</div>
+          <div className="kpi-value">
+            {checks.length - checksBad} / {checks.length}
+          </div>
+          <div className="kpi-note">{checksBad ? `${checksBad} week(s) the bank showed less` : "weeks matching the bank's deposits"}</div>
         </div>
         <div className="kpi card">
           <div className="kpi-label">Can draw now</div>

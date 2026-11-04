@@ -56,6 +56,8 @@ export interface AdvanceRequest {
   borrowerId: string;
   amount: Cents;
   week: number;
+  /** Where the request came from: the platform's own flow, or the merchant portal. */
+  source?: "platform" | "portal";
 }
 
 export interface HealthSignals {
@@ -64,6 +66,8 @@ export interface HealthSignals {
   volatility: number;
   lastWeekChangePct: number;
   weeksObserved: number;
+  /** Share of last week's sales that customers refunded or charged back (0-1), when the platform reports it. */
+  refundRate?: number;
   tier: Tier;
   reasons: string[];
 }
