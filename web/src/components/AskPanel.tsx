@@ -70,7 +70,11 @@ export function AskPanel({ open, onClose, context, suggestions, emptyAction }: {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
-  useEffect(() => list.current?.scrollTo({ top: list.current.scrollHeight, behavior: "smooth" }), [messages.length, busy]);
+  // Braces matter: an effect's return value is treated as its cleanup, and some browser extensions
+  // make scrollTo return a value, which React would then try to call.
+  useEffect(() => {
+    list.current?.scrollTo({ top: list.current.scrollHeight, behavior: "smooth" });
+  }, [messages.length, busy]);
 
   const ask = async (question: string) => {
     const q = question.trim();

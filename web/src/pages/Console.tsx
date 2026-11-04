@@ -517,7 +517,9 @@ function PlatformRules({ params, onChange }: { params: ScenarioParams; onChange:
 
 function Slider({ label, value, display, min, max, step, onChange }: { label: string; value: number; display: string; min: number; max: number; step: number; onChange: (v: number) => void }) {
   const [local, setLocal] = useState(value);
-  useEffect(() => setLocal(value), [value]);
+  useEffect(() => {
+    setLocal(value);
+  }, [value]);
   const fill = ((local - min) / (max - min)) * 100;
   return (
     <label className="slider">
@@ -639,7 +641,9 @@ function Activity({ events }: { events: { week: number; level: "info" | "warn"; 
 
 function ApprovalDialog({ pending, floor }: { pending: PendingApproval; floor: number }) {
   const approveRef = useRef<HTMLButtonElement>(null);
-  useEffect(() => approveRef.current?.focus(), []);
+  useEffect(() => {
+    approveRef.current?.focus();
+  }, []);
   const { record, option } = pending;
   const name = NAMES[record.borrowerId];
   const reason = option.reallocations.length
