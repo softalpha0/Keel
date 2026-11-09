@@ -95,7 +95,7 @@ function Hero({ run, live }: { run: RunResult | null; live: LatestRun }) {
           <div className="figure-head">
             <div>
               <div className="card-title">Platform cash, weeks 1–10</div>
-              <div className="card-sub">Three borrowers · {moneyCompact(run?.fundSize ?? 0)} fund · simulated on the agent's real engine</div>
+              <div className="card-sub">Three borrowers · {run ? `${moneyCompact(run.fundSize)} fund · ` : ""}simulated on the agent's real engine</div>
             </div>
             <div className="legend" aria-hidden="true">
               <span>

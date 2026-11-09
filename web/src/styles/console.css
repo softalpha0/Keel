@@ -1993,3 +1993,33 @@
     display: none;
   }
 }
+
+/* Below 900px the desk title has no room next to the actions; the wordmark and the page carry it. */
+@media (max-width: 900px) {
+  .topbar-title {
+    display: none;
+  }
+}
+
+/* Phones: the approval card uses the full width. */
+@media (max-width: 640px) {
+  .options-bar {
+    min-width: 0;
+  }
+  .scrim {
+    padding: 8px;
+  }
+  .dialog-head,
+  .dialog-body,
+  .dialog-actions {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  .dialog-title {
+    font-size: 19px;
+  }
+}
+
+.decision-memo {
+  overflow-wrap: anywhere;
+}
