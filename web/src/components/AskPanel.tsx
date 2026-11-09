@@ -142,7 +142,7 @@ export function AskPanel({ open, onClose, context, suggestions, emptyAction }: {
                 <span className="think-done muted">
                   <SparkIcon size={11} /> {m.by === "claude" ? `Thought for ${(m.ms / 1000).toFixed(1)}s` : "Answered from the decision log"}
                 </span>
-                <p>{m.answer}</p>
+                <p>{m.answer.replace(/\*\*/g, "")}</p>
                 {m.sources.length > 0 && (
                   <div className="msg-sources">
                     {m.sources.map((s) => (
