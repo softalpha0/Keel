@@ -16,6 +16,8 @@ A platform has three merchants on it, a $100K lending fund, and a rule: platform
 
 Airwallex Agentic Banking Hackathon 2026 · **Kit 7: Portfolio Lending Agent (Dynamic Lending)**
 
+> **Why "Keel"?** A keel is the spine along the bottom of a ship that keeps it steady in rough water. Keel keeps a lending book steady when borrowers' sales swing.
+
 ## Contents
 
 - [The problem](#the-problem)
@@ -188,6 +190,8 @@ sequenceDiagram
 ```
 
 The executor also re-checks the reserve floor against the **live balance** before every disbursement, and only records a movement once the bank confirms it settled. In the demo, week 6's lost response is injected on purpose and shows up on the chart as an incident.
+
+**Concurrency.** Movements on the platform wallet run one at a time through a queue shared by every executor on that bank, so a payout's floor check and its transfer act as one step: two $40K payouts started together against $100K with a $30K floor can't both pass. Two calls with the same key at the same moment share one movement and book one receipt. Both cases are tests in `test/executor.test.ts` (thanks to Cyrus at Airwallex for finding them). The queue lives in one process; a multi-process deployment would move it to the database, with a unique constraint on the key, which is on the roadmap.
 
 ## Underpayments, late money and old promises
 
@@ -400,7 +404,7 @@ Needs Node 20.12+ (`.nvmrc` pins 22).
 ```bash
 npm install
 npm run dev          # website at http://localhost:5173
-npm test             # 54 tests, including the 2,000-portfolio property test
+npm test             # 57 tests, including the 2,000-portfolio property test
 npm run demo         # the ten weeks in the terminal, simulated bank
 ```
 

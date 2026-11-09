@@ -544,8 +544,9 @@ function Operations({ run }: { run: RunResult | null }) {
               <span className="op-tag">Reconciliation</span>
               <h3>Every wallet, three ways.</h3>
               <p>
-                After the run Keel downloads the bank's own BALANCE_REPORT and checks every wallet it touched, platform and borrowers in every currency, against its
-                ledger and the live balance API.
+                After the run Keel checks every wallet it touched, platform and borrowers in every currency, against its ledger and the live balance API, and against
+                the bank's own BALANCE_REPORT whenever Airwallex delivers it. The table is from the simulated run; each sandbox run shows its own result on the Sandbox
+                run page.
               </p>
             </div>
             <div className="table-wrap">
@@ -743,6 +744,9 @@ function Footer() {
             Source
           </a>
         </nav>
+        <p className="muted">
+          Why "Keel"? A keel is the spine along the bottom of a ship that keeps it steady in rough water. Keel keeps a lending book steady when borrowers' sales swing.
+        </p>
         <p className="muted">
           Built for the Airwallex Agentic Banking Hackathon 2026. A sandbox simulation, not a lending offer. Not affiliated with or endorsed by Airwallex.
         </p>

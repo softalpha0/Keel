@@ -268,8 +268,14 @@ export class AirwallexBank implements BankAdapter {
       const status = (r.status ?? "").toUpperCase();
       if (status === "FAILED") throw new Error(`BALANCE_REPORT failed: ${r.failed_reason ?? "no reason given"}`);
       if (status === "COMPLETED" && r.download_url) {
-        const res = await fetch(r.download_url);
-        if (!res.ok) throw new Error(`report download failed (${res.status})`);
+        // The signed link expires quickly; if it is refused, ask for the report again to get a fresh one.
+        let res = await fetch(r.download_url);
+        for (let retry = 0; !res.ok && retry < 3; retry++) {
+          await sleep(2_000);
+          const again = await this.call<{ download_url?: string }>(API.reportById(created.id));
+          if (again.download_url) res = await fetch(again.download_url);
+        }
+        if (!res.ok) throw new Error(`report ${created.id} generated, but its download link was refused (${res.status})`);
         return { reportId: created.id, rows: parseBalanceCsv(await res.text()) };
       }
       if (Date.now() - started > timeoutMs) throw new Error(`BALANCE_REPORT ${created.id} still ${status || "pending"} after ${timeoutMs / 1000}s`);

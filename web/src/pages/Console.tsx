@@ -385,7 +385,13 @@ function DecisionPanel({
               <span className="muted">
                 Week {decision.week} · {NAMES[decision.borrowerId]}{" "}
                 {decision.type === "commitment" ? "pending advance of" : "asked for"} {money((decision.inputs.request as { amount: number }).amount)} · decided by{" "}
-                {decision.decidedBy === "claude" ? "Claude" : "policy rules"}
+                {decision.decidedBy === "claude" ? (
+                  "Claude"
+                ) : (
+                  <span title="This public desk uses Keel's rules engine so it is free and instant. The daily Airwallex sandbox run uses Claude for these calls.">
+                    policy rules <span className="muted">(Claude makes these calls on the sandbox run)</span>
+                  </span>
+                )}
               </span>
               {decision.approval?.required && (
                 <span className={`pill ${decision.approval.approved ? "pill-good" : "pill-critical"}`}>

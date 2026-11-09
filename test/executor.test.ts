@@ -41,3 +41,33 @@ describe("Executor", () => {
     expect(bank.appliedTransfers).toBe(0);
   });
 });
+
+describe("Executor under concurrency", () => {
+  it("two payouts started at once can't both pass the floor check (Cyrus's case: 2 × $40K, $100K balance, $30K floor)", async () => {
+    const { bank, ex } = setup();
+    const payout = (key: string) => ex.move({ kind: "disburse", borrowerId: "a", borrowerAccountId: "acct_a", amount: 4_000_000, idempotencyKey: key, reference: "t", week: 1 });
+    const results = await Promise.allSettled([payout("disburse:p1"), payout("disburse:p2")]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(results.find((r) => r.status === "rejected")!.reason).toBeInstanceOf(FloorBreachError);
+    expect(await bank.getBalance("platform")).toBe(6_000_000);
+  });
+
+  it("two payouts on separate executors sharing the bank are still serialised", async () => {
+    const { bank, ledger } = setup();
+    const a = new Executor(bank, ledger, cfg, "platform");
+    const b = new Executor(bank, ledger, cfg, "platform");
+    const move = (ex: Executor, key: string) => ex.move({ kind: "disburse", borrowerId: "a", borrowerAccountId: "acct_a", amount: 4_000_000, idempotencyKey: key, reference: "t", week: 1 });
+    const results = await Promise.allSettled([move(a, "disburse:q1"), move(b, "disburse:q2")]);
+    expect(results.filter((r) => r.status === "fulfilled")).toHaveLength(1);
+    expect(await bank.getBalance("platform")).toBeGreaterThanOrEqual(cfg.reserveFloor);
+  });
+
+  it("two simultaneous collections with the same key move money once and book one receipt", async () => {
+    const { bank, ledger, ex } = setup();
+    const [r1, r2] = await Promise.all([ex.move(collect), ex.move(collect)]);
+    expect(r1).toBe(r2);
+    expect(bank.appliedTransfers).toBe(1);
+    expect(ledger.receipts.filter((r) => r.idempotencyKey === collect.idempotencyKey)).toHaveLength(1);
+    expect(await bank.getBalance("platform")).toBe(ledger.expectedPlatformBalance());
+  });
+});

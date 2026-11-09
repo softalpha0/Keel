@@ -6,7 +6,7 @@ An agent that moves money has to be boring in ten specific ways. Each guarantee 
 
 **Platform cash never drops below the floor, whatever the borrowers ask for.**
 
-The policy engine marks any option that would leave cash under the floor as infeasible before anyone chooses. The executor then re-checks the floor against the live bank balance before every payout, and refuses if it would breach.
+The policy engine marks any option that would leave cash under the floor as infeasible before anyone chooses. The executor then re-checks the floor against the live bank balance before every payout, one payout at a time, and refuses if it would breach.
 
 Code: [`src/policy/engine.ts`](../src/policy/engine.ts) · [`src/executor.ts`](../src/executor.ts)  
 Tests: [`test/policy.test.ts`](../test/policy.test.ts)
@@ -15,7 +15,7 @@ Tests: [`test/policy.test.ts`](../test/policy.test.ts)
 
 **A retry can never pay a borrower twice or charge them twice.**
 
-Every movement has a fixed key (e.g. collect:adv_1:w6) that becomes the Airwallex request_id. A lost response is retried with the same key; an ambiguous failure is looked up by request_id before anything is resent. Currency conversions get their own key.
+Every movement has a fixed key (e.g. collect:adv_1:w6) that becomes the Airwallex request_id. A lost response is retried with the same key; an ambiguous failure is looked up by request_id before anything is resent. Currency conversions get their own key. Movements on the platform wallet run one at a time, so two payouts started together can't both pass the floor check, and the same key requested twice at once books one receipt.
 
 Code: [`src/executor.ts`](../src/executor.ts) · [`src/bank/airwallex.ts`](../src/bank/airwallex.ts)  
 Tests: [`test/executor.test.ts`](../test/executor.test.ts) · [`test/airwallex.test.ts`](../test/airwallex.test.ts) · [`test/fx.test.ts`](../test/fx.test.ts)

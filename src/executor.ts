@@ -17,12 +17,35 @@ export interface MoveIntent {
 }
 
 /**
+ * One queue per platform wallet at a bank, shared by every Executor that touches it. A payout's
+ * floor check and its transfer then happen as one step: two payouts started at the same moment
+ * can't both pass the check against the same balance.
+ */
+const queues = new WeakMap<BankAdapter, Map<string, Promise<unknown>>>();
+
+function serialize<T>(bank: BankAdapter, account: string, job: () => Promise<T>): Promise<T> {
+  const perBank = queues.get(bank) ?? new Map<string, Promise<unknown>>();
+  queues.set(bank, perBank);
+  const prev = perBank.get(account) ?? Promise.resolve();
+  const run = prev.then(job, job);
+  perBank.set(
+    account,
+    run.catch(() => undefined),
+  );
+  return run;
+}
+
+/**
  * The only component allowed to move money.
- * - checks the reserve floor against the live balance before any outflow
+ * - checks the reserve floor against the live balance before any outflow, one movement at a time
  * - retries with the same idempotency key, so a lost response can never pay twice
+ * - the same key requested twice at once shares one movement and books one receipt
  * - records "settled" only after reading the transfer back from the bank
  */
 export class Executor {
+  /** Movements in progress, by idempotency key. */
+  private inflight = new Map<string, Promise<Receipt>>();
+
   constructor(
     private bank: BankAdapter,
     private ledger: Ledger,
@@ -31,7 +54,19 @@ export class Executor {
     private maxAttempts = 3,
   ) {}
 
-  async move(intent: MoveIntent): Promise<Receipt> {
+  move(intent: MoveIntent): Promise<Receipt> {
+    const done = this.ledger.receiptFor(intent.idempotencyKey);
+    if (done) return Promise.resolve(done);
+    // A second call with a key already moving waits for that movement instead of starting another.
+    const running = this.inflight.get(intent.idempotencyKey);
+    if (running) return running;
+    const p = serialize(this.bank, this.platformAccountId, () => this.execute(intent)).finally(() => this.inflight.delete(intent.idempotencyKey));
+    this.inflight.set(intent.idempotencyKey, p);
+    return p;
+  }
+
+  private async execute(intent: MoveIntent): Promise<Receipt> {
+    // Re-check inside the queue: an earlier job may have settled this key while we waited.
     const done = this.ledger.receiptFor(intent.idempotencyKey);
     if (done) return done;
 
@@ -79,6 +114,9 @@ export class Executor {
           receipt.amount = c.buyAmount;
           receipt.fx = { currency: intent.currency!, localAmount: intent.amount, rate: c.rate, conversionId: c.id };
         }
+        // Never book the same settled movement twice, whatever path got us here.
+        const booked = this.ledger.receiptFor(intent.idempotencyKey);
+        if (booked) return booked;
         this.ledger.receipts.push(receipt);
         if (attempt > 1) {
           this.ledger.log(

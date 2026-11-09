@@ -17,14 +17,14 @@ export const GUARANTEES: Guarantee[] = [
   {
     title: "The reserve floor is never breached",
     claim: "Platform cash never drops below the floor, whatever the borrowers ask for.",
-    how: "The policy engine marks any option that would leave cash under the floor as infeasible before anyone chooses. The executor then re-checks the floor against the live bank balance before every payout, and refuses if it would breach.",
+    how: "The policy engine marks any option that would leave cash under the floor as infeasible before anyone chooses. The executor then re-checks the floor against the live bank balance before every payout, one payout at a time, and refuses if it would breach.",
     code: ["src/policy/engine.ts", "src/executor.ts"],
     tests: ["test/policy.test.ts"],
   },
   {
     title: "Money moves exactly once",
     claim: "A retry can never pay a borrower twice or charge them twice.",
-    how: "Every movement has a fixed key (e.g. collect:adv_1:w6) that becomes the Airwallex request_id. A lost response is retried with the same key; an ambiguous failure is looked up by request_id before anything is resent. Currency conversions get their own key.",
+    how: "Every movement has a fixed key (e.g. collect:adv_1:w6) that becomes the Airwallex request_id. A lost response is retried with the same key; an ambiguous failure is looked up by request_id before anything is resent. Currency conversions get their own key. Movements on the platform wallet run one at a time, so two payouts started together can't both pass the floor check, and the same key requested twice at once books one receipt.",
     code: ["src/executor.ts", "src/bank/airwallex.ts"],
     tests: ["test/executor.test.ts", "test/airwallex.test.ts", "test/fx.test.ts"],
   },
