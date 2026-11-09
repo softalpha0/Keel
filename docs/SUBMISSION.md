@@ -43,7 +43,7 @@ Keel is an autonomous revenue-based lending agent for platforms on Airwallex. It
 
 **How AI is used.** "The model reads, the code decides, the API moves the money." Claude chooses among policy-feasible options only and writes the credit memo through structured output. A guardrail rejects anything else, and a deterministic rules advisor takes over if the model is unavailable. The model never calls the bank.
 
-**Built with.** TypeScript, Node, React 19, Vite, Vitest + fast-check (57 tests), the Anthropic SDK (Claude), Slack incoming webhooks, the Airwallex sandbox API, Vercel.
+**Built with.** TypeScript, Node, React 19, Vite, Vitest + fast-check (65 tests), the Anthropic SDK (Claude), Slack incoming webhooks, the Airwallex sandbox API, Vercel.
 
 ## Setup instructions (for judges)
 
@@ -52,7 +52,7 @@ No install: open the live site and press **Launch the credit desk**. To run loca
 ```bash
 git clone https://github.com/softalpha0/Keel && cd Keel
 npm install
-npm test        # 57 tests
+npm test        # 65 tests
 npm run dev     # http://localhost:5173
 npm run demo    # the ten weeks in the terminal
 ```

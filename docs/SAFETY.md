@@ -15,10 +15,10 @@ Tests: [`test/policy.test.ts`](../test/policy.test.ts)
 
 **A retry can never pay a borrower twice or charge them twice.**
 
-Every movement has a fixed key (e.g. collect:adv_1:w6) that becomes the Airwallex request_id. A lost response is retried with the same key; an ambiguous failure is looked up by request_id before anything is resent. Currency conversions get their own key. Movements on the platform wallet run one at a time, so two payouts started together can't both pass the floor check, and the same key requested twice at once books one receipt.
+Every movement has a fixed key (e.g. collect:adv_1:w6) that becomes the Airwallex request_id. A lost response is retried with the same key; an ambiguous failure is looked up by request_id before anything is resent. Currency conversions get their own key. Movements on the platform wallet run one at a time, so two payouts started together can't both pass the floor check, and the same key requested twice at once books one receipt. Settled movements are written to a durable journal and each key is claimed before the bank is called, so a restart or a second process can't send it again.
 
 Code: [`src/executor.ts`](../src/executor.ts) · [`src/bank/airwallex.ts`](../src/bank/airwallex.ts)  
-Tests: [`test/executor.test.ts`](../test/executor.test.ts) · [`test/airwallex.test.ts`](../test/airwallex.test.ts) · [`test/fx.test.ts`](../test/fx.test.ts)
+Tests: [`test/executor.test.ts`](../test/executor.test.ts) · [`test/journal.test.ts`](../test/journal.test.ts) · [`test/airwallex.test.ts`](../test/airwallex.test.ts) · [`test/fx.test.ts`](../test/fx.test.ts)
 
 ## 3. The model can't move money or invent options
 

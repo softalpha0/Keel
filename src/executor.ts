@@ -1,7 +1,7 @@
 import { PLATFORM_CURRENCY, type Cents } from "./domain.js";
 import type { BankAdapter } from "./bank/types.js";
 import { assertFloor, type PolicyConfig } from "./policy/engine.js";
-import type { Ledger, MovementKind, Receipt } from "./ledger.js";
+import type { Journal, Ledger, MovementKind, Receipt } from "./ledger.js";
 
 export interface MoveIntent {
   kind: MovementKind;
@@ -52,6 +52,8 @@ export class Executor {
     private cfg: PolicyConfig,
     private platformAccountId: string,
     private maxAttempts = 3,
+    /** Durable record of settled movements, checked before any money moves. */
+    private journal?: Journal,
   ) {}
 
   move(intent: MoveIntent): Promise<Receipt> {
@@ -69,7 +71,28 @@ export class Executor {
     // Re-check inside the queue: an earlier job may have settled this key while we waited.
     const done = this.ledger.receiptFor(intent.idempotencyKey);
     if (done) return done;
+    if (!this.journal) return this.transfer(intent);
 
+    // The journal outlives this process: a movement settled by an earlier run or another process
+    // is booked here from its record instead of being sent again.
+    const claim = await this.journal.claim(intent.idempotencyKey);
+    if (!claim.owned) return this.adopt(claim.receipt, intent);
+    try {
+      return await this.transfer(intent);
+    } finally {
+      this.journal.release(intent.idempotencyKey);
+    }
+  }
+
+  private adopt(receipt: Receipt, intent: MoveIntent): Receipt {
+    const booked = this.ledger.receiptFor(intent.idempotencyKey);
+    if (booked) return booked;
+    this.ledger.receipts.push(receipt);
+    this.ledger.log(intent.week, `${intent.idempotencyKey} was already settled (${receipt.transferId}) according to the journal; booked it without moving money again.`);
+    return receipt;
+  }
+
+  private async transfer(intent: MoveIntent): Promise<Receipt> {
     const outflow = intent.kind === "disburse";
     const from = outflow ? this.platformAccountId : intent.borrowerAccountId;
     const to = outflow ? intent.borrowerAccountId : this.platformAccountId;
@@ -117,6 +140,7 @@ export class Executor {
         // Never book the same settled movement twice, whatever path got us here.
         const booked = this.ledger.receiptFor(intent.idempotencyKey);
         if (booked) return booked;
+        this.journal?.record(receipt);
         this.ledger.receipts.push(receipt);
         if (attempt > 1) {
           this.ledger.log(

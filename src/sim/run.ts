@@ -5,6 +5,7 @@ import { RulesAdvisor, type Advisor } from "../agent/advisor.js";
 import { Ledger } from "../ledger.js";
 import { defaultPolicy, type PolicyConfig } from "../policy/engine.js";
 import type { Scenario } from "./scenario.js";
+import type { Journal } from "../ledger.js";
 import { PLATFORM_CURRENCY, type Borrower, type Cents } from "../domain.js";
 
 export const PLATFORM = "acct_platform";
@@ -15,6 +16,8 @@ export interface RunOptions {
   approver?: Approver;
   policy?: Partial<PolicyConfig>;
   platformAccountId?: string;
+  /** Durable record of settled movements (see src/journal.ts). */
+  journal?: Journal;
   /**
    * Check each week's revenue against the bank's own deposit records, where the bank can list them.
    * "enforce" (default for the mock bank) collects only on confirmed money; "report" records the check only.
@@ -67,6 +70,7 @@ export async function createSimulation(s: Scenario, opts: RunOptions = {}): Prom
     platform,
     opts.advisor ?? new RulesAdvisor(),
     opts.approver,
+    opts.journal,
   );
 
   const staged: StagedRevenue[] = [];

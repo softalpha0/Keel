@@ -191,7 +191,7 @@ sequenceDiagram
 
 The executor also re-checks the reserve floor against the **live balance** before every disbursement, and only records a movement once the bank confirms it settled. In the demo, week 6's lost response is injected on purpose and shows up on the chart as an incident.
 
-**Concurrency.** Movements on the platform wallet run one at a time through a queue shared by every executor on that bank, so a payout's floor check and its transfer act as one step: two $40K payouts started together against $100K with a $30K floor can't both pass. Two calls with the same key at the same moment share one movement and book one receipt. Both cases are tests in `test/executor.test.ts` (thanks to Cyrus at Airwallex for finding them). The queue lives in one process; a multi-process deployment would move it to the database, with a unique constraint on the key, which is on the roadmap.
+**Concurrency.** Movements on the platform wallet run one at a time through a queue shared by every executor on that bank, so a payout's floor check and its transfer act as one step: two $40K payouts started together against $100K with a $30K floor can't both pass. Two calls with the same key at the same moment share one movement and book one receipt. Both cases are tests in `test/executor.test.ts` (thanks to Cyrus at Airwallex for finding them). The queue lives in one process; settled movements are also written to a durable journal (`src/journal.ts`) that claims each key with an exclusive lock file, so a restart or a second process can't send the same movement again. A production deployment would make that a database table with a unique index.
 
 ## Underpayments, late money and old promises
 
@@ -404,7 +404,7 @@ Needs Node 20.12+ (`.nvmrc` pins 22).
 ```bash
 npm install
 npm run dev          # website at http://localhost:5173
-npm test             # 57 tests, including the 2,000-portfolio property test
+npm test             # 65 tests, including the 2,000-portfolio property test
 npm run demo         # the ten weeks in the terminal, simulated bank
 ```
 
@@ -499,7 +499,7 @@ docs/                    screenshots, video storyboard, submission text
 
 ## Roadmap
 
-Five roadmap items ship in this build and run in the demo: revenue checked against Airwallex deposits, audit trail export, refunds in underwriting, platform rules, and merchant requests with notifications. Next: live card revenue from Payments Acceptance, accounts and storage, deeper underwriting, merchant onboarding, compliance, and pilots. Details in [`docs/ROADMAP.md`](docs/ROADMAP.md).
+Seven roadmap items ship in this build: revenue checked against Airwallex deposits, audit trail export, refunds in underwriting, platform rules, merchant requests with notifications, a **backtest** over two years of merchant history (`/backtest`: 4.8% loss and +2.8% net for Keel, against 30.8% loss for lending without health checks), and a **persistent journal** so a restart or a second process can't move the same money twice. Next: live card revenue from Payments Acceptance, accounts and storage, deeper underwriting, merchant onboarding, compliance, and pilots. Details in [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Known limitations
 

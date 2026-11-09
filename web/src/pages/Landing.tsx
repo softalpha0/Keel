@@ -661,12 +661,14 @@ const SHIPPED = [
   { n: "03", title: "Refunds in underwriting", body: "Refunds and chargebacks feed the health tiers: watch at 6% of sales, stressed at 12%. Sales that come back are a warning revenue alone hides.", to: "/borrowers/nimbus", cta: "Nimbus's refunds" },
   { n: "04", title: "Platform rules", body: "Each platform sets its own approval line, limit per borrower and advance size on the desk. The sandbox run reads the same rules from its environment.", to: "/desk", cta: "Set the rules" },
   { n: "05", title: "Merchant requests and notifications", body: "Merchants request funds from the portal and Keel decides them in that week's run. Every payout, repayment and decision shows up as a notification.", to: "/portal/ledgerly", cta: "Request as Ledgerly" },
+  { n: "06", title: "Backtest over merchant history", body: "Keel's policy replayed over 300 merchants and two years of sales, against lending without health checks: losses and returns by kind of merchant, with the platform's own rules.", to: "/backtest", cta: "See the backtest" },
+  { n: "07", title: "A journal that outlives the process", body: "Every settled movement is appended to a durable journal, and a key is claimed before the bank is called, so a restart, a second process or a re-run can't move the same money twice.", to: "/safety", cta: "See the guarantee" },
 ];
 
 const NEXT = [
   ["Live card revenue", "Read real merchant sales from Airwallex Payments Acceptance instead of simulated deposits."],
-  ["Accounts and storage", "A database, a login per platform with roles, and an append-only audit log a regulator can read."],
-  ["Deeper underwriting", "Customer concentration, seasonality, and backtesting the tiers on historical data before raising limits."],
+  ["Accounts and storage", "Move the journal into a database with a unique key, add a login per platform with roles, and keep the audit log append-only for regulators."],
+  ["Deeper underwriting", "Customer concentration and seasonality in the tiers, and the backtest run on a platform's real sales history before raising limits."],
   ["Merchant onboarding", "KYB through Airwallex, signed advance agreements, and notifications by email and in the platform's own app."],
   ["Compliance", "A licensing review in each market, lending disclosures, and who carries the credit risk: the platform or a funding partner."],
   ["Pilots and pricing", "Two or three platforms that already see their merchants' sales; a fee per advance or a platform subscription."],
@@ -679,7 +681,7 @@ function Roadmap() {
         <Reveal className="section-head">
           <p className="eyebrow">Roadmap</p>
           <h2 className="h2">Shipped in this build, and what comes next.</h2>
-          <p className="section-lede">The first five run in the demo today, against the simulated bank and on the Airwallex sandbox. The rest is what a platform would need before lending real money.</p>
+          <p className="section-lede">The first seven run in the demo today, against the simulated bank and on the Airwallex sandbox. The rest is what a platform would need before lending real money.</p>
         </Reveal>
         <ol className="roadmap">
           {SHIPPED.map((s) => (
@@ -739,6 +741,7 @@ function Footer() {
           <Link to="/borrowers/nimbus">Borrowers</Link>
           <Link to="/portal/nimbus">Merchant portal</Link>
           <Link to="/safety">Safety</Link>
+          <Link to="/backtest">Backtest</Link>
           <Link to="/run">Sandbox run</Link>
           <a href="https://github.com/softalpha0/Keel" target="_blank" rel="noreferrer">
             Source

@@ -22,6 +22,7 @@ import { NotFound } from "./pages/NotFound";
 import { BorrowerPage } from "./pages/BorrowerPage";
 import { PortalPage } from "./pages/PortalPage";
 import { SafetyPage } from "./pages/SafetyPage";
+import { BacktestPage } from "./pages/BacktestPage";
 import { RouteBoundary, reloadOnce } from "./components/RouteBoundary";
 
 /** One boundary above every page (so errors while leaving a page are caught too), reset on navigation. */
@@ -66,6 +67,7 @@ createRoot(document.getElementById("root")!, {
             element={<Navigate to="/portal/nimbus" replace />}
           />
           <Route path="/safety" element={<SafetyPage />} />
+        <Route path="/backtest" element={<BacktestPage />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </Pages>

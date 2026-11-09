@@ -58,6 +58,21 @@ export interface DecisionRecord {
   receipts: string[];
 }
 
+/**
+ * Where settled money movements are recorded so they outlive the process. The executor checks it
+ * before moving money and claims a key before calling the bank, so a restart, a second process or
+ * a new run can never move the same money twice.
+ */
+export interface Journal {
+  /** The settled movement recorded under this key, if any. */
+  get(key: string): Receipt | undefined;
+  /** Take the key before calling the bank. Resolves to a receipt if someone else already settled it. */
+  claim(key: string): Promise<{ owned: true } | { owned: false; receipt: Receipt }>;
+  /** Append a settled movement. Refuses a second one under the same key. */
+  record(receipt: Receipt): void;
+  release(key: string): void;
+}
+
 /** The loan book plus an append-only decision log. The source of truth for reconciliation. */
 export class Ledger {
   advances: Advance[] = [];

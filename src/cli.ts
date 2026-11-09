@@ -1,3 +1,4 @@
+import { FileJournal } from "./journal.js";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import type { Server } from "node:http";
 import { ApprovalDesk } from "./approvals/desk.js";
@@ -101,6 +102,8 @@ const run0 = await runScenario(scenario, {
   advisor: useLlm ? new ClaudeAdvisor() : new RulesAdvisor(),
   bank,
   policy,
+  // Settled movements are journaled per run on disk, so re-running the same AIRWALLEX_RUN_ID after a crash never pays twice.
+  journal: bank ? new FileJournal(`out/journal/${bank.runId.replace(/[^\w.-]/g, "_")}`) : undefined,
   // On the sandbox the deposit check reports by default; KEEL_VERIFY_DEPOSITS=enforce makes it gate collections.
   verifyDeposits: (process.env.KEEL_VERIFY_DEPOSITS as "enforce" | "report" | "off" | undefined) ?? undefined,
   platformAccountId: bank?.platformAccountId,

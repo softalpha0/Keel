@@ -24,9 +24,9 @@ export const GUARANTEES: Guarantee[] = [
   {
     title: "Money moves exactly once",
     claim: "A retry can never pay a borrower twice or charge them twice.",
-    how: "Every movement has a fixed key (e.g. collect:adv_1:w6) that becomes the Airwallex request_id. A lost response is retried with the same key; an ambiguous failure is looked up by request_id before anything is resent. Currency conversions get their own key. Movements on the platform wallet run one at a time, so two payouts started together can't both pass the floor check, and the same key requested twice at once books one receipt.",
-    code: ["src/executor.ts", "src/bank/airwallex.ts"],
-    tests: ["test/executor.test.ts", "test/airwallex.test.ts", "test/fx.test.ts"],
+    how: "Every movement has a fixed key (e.g. collect:adv_1:w6) that becomes the Airwallex request_id. A lost response is retried with the same key; an ambiguous failure is looked up by request_id before anything is resent. Currency conversions get their own key. Movements on the platform wallet run one at a time, so two payouts started together can't both pass the floor check, and the same key requested twice at once books one receipt. Settled movements are written to a durable journal and each key is claimed before the bank is called, so a restart or a second process can't send it again.",
+    code: ["src/executor.ts", "src/journal.ts", "src/bank/airwallex.ts"],
+    tests: ["test/executor.test.ts", "test/journal.test.ts", "test/airwallex.test.ts", "test/fx.test.ts"],
   },
   {
     title: "The model can't move money or invent options",
@@ -120,7 +120,7 @@ export function SafetyPage() {
             </div>
             <div>
               <dt>Automated tests</dt>
-              <dd>50+</dd>
+              <dd>65</dd>
             </div>
             <div>
               <dt>Floor breaches</dt>

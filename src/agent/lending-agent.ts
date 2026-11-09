@@ -5,6 +5,7 @@ import type { DecisionRecord, Ledger } from "../ledger.js";
 import { buildOptions, FloorBreachError, rankOptions, repaymentDue, type DecisionContext, type PolicyConfig } from "../policy/engine.js";
 import { computeSignals } from "../policy/signals.js";
 import type { Advisor } from "./advisor.js";
+import type { Journal } from "../ledger.js";
 
 export interface Approver {
   approve(record: DecisionRecord, option: AdvanceOption): Promise<{ approved: boolean; by: string }>;
@@ -57,8 +58,9 @@ export class LendingAgent {
     private platformAccountId: string,
     private advisor: Advisor,
     private approver: Approver = autoApprover,
+    journal?: Journal,
   ) {
-    this.executor = new Executor(bank, ledger, cfg, platformAccountId);
+    this.executor = new Executor(bank, ledger, cfg, platformAccountId, 3, journal);
   }
 
   /**
