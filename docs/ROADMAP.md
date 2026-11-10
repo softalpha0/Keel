@@ -17,9 +17,13 @@ What Keel can show today, and what a platform would need before lending real mon
 
 Tests: `test/roadmap.test.ts`, `test/backtest.test.ts`, `test/journal.test.ts` and `test/airwallex.test.ts`. Items 6 and 7 answer feedback from Cyrus at Airwallex, who asked for persistent transaction records and for the policy to be tested against merchant history.
 
+## Proven on the sandbox
+
+**Card payments to merchants.** After moving to a Singapore sandbox account (Airwallex Payments isn't available for the earlier NG-registered account), customer card payments succeed through Payments Acceptance: the platform creates and confirms a PaymentIntent with the sandbox test card, then a FundsSplit sends the merchant's part to their connected account. All three borrowers passed (e.g. split `spt_sgpvcp7l2ho0w2zta9r`). Split funds settle on Airwallex's schedule rather than instantly, so they aren't in the merchant's wallet when Keel collects that week. Run it yourself with `npx tsx src/sandbox/payments-check.ts`.
+
 ## Next
 
-- **Live card revenue.** Read real merchant sales from Airwallex Payments Acceptance instead of simulated deposits.
+- **Repay from card payments.** Keel keeps its share of each card payment and splits only the rest to the merchant, instead of charging the merchant's wallet afterwards. That fits split settlement, and it's how Shopify Capital collects.
 - **Accounts and storage.** Move the journal into a database with a unique key, a login per platform with roles, and an append-only audit log a regulator can read.
 - **Deeper underwriting.** Customer concentration and seasonality in the tiers, and the backtest run on a platform's real sales history before raising limits.
 - **Merchant onboarding.** KYB through Airwallex, signed advance agreements, and notifications by email and in the platform's own app.

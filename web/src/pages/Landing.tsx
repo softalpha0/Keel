@@ -666,7 +666,7 @@ const SHIPPED = [
 ];
 
 const NEXT = [
-  ["Live card revenue", "Read real merchant sales from Airwallex Payments Acceptance instead of simulated deposits."],
+  ["Repay from card payments", "Card payments and FundsSplits to merchants already succeed on the sandbox. Next, Keel keeps its share of each payment before splitting the rest to the merchant, the model Shopify Capital uses."],
   ["Accounts and storage", "Move the journal into a database with a unique key, add a login per platform with roles, and keep the audit log append-only for regulators."],
   ["Deeper underwriting", "Customer concentration and seasonality in the tiers, and the backtest run on a platform's real sales history before raising limits."],
   ["Merchant onboarding", "KYB through Airwallex, signed advance agreements, and notifications by email and in the platform's own app."],
