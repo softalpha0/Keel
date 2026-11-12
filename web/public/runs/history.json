@@ -1,5 +1,17 @@
 [
   {
+    "file": "2026-11-12T134450.json",
+    "runId": "2026-11-12T13:44:50.553Z",
+    "startedAt": "2026-11-12T13:44:50.552Z",
+    "source": "airwallex-sandbox",
+    "floorHeldEveryWeek": true,
+    "reconciledEveryWeek": true,
+    "walletsMatch": true,
+    "decisions": 5,
+    "byClaude": 5,
+    "movements": 22
+  },
+  {
     "file": "2026-11-11T124223.json",
     "runId": "2026-11-11T12:42:23.657Z",
     "startedAt": "2026-11-11T12:42:23.656Z",
