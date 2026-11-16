@@ -1,0 +1,1369 @@
+{
+  "version": 1,
+  "source": "airwallex-sandbox",
+  "runId": "2026-11-16T13:37:18.608Z",
+  "startedAt": "2026-11-16T13:37:18.607Z",
+  "finishedAt": "2026-11-16T13:40:49.433Z",
+  "currency": "USD",
+  "fund": {
+    "size": 10000000,
+    "reserveFloor": 950196192,
+    "openingBalance": 957196192
+  },
+  "borrowers": [
+    {
+      "id": "kopi",
+      "name": "Kopi Roasters",
+      "accountId": "acct_7S_5YI8hPQe5aQ2q_G9qBQ"
+    },
+    {
+      "id": "nimbus",
+      "name": "Nimbus Apparel",
+      "accountId": "acct_FgwSa3ueNfSo5T2x3GDpQQ"
+    },
+    {
+      "id": "ledgerly",
+      "name": "Ledgerly SaaS",
+      "accountId": "acct_8iWqHGHoO2-WUR1NQeu2bQ"
+    }
+  ],
+  "weeks": [
+    {
+      "week": 1,
+      "platformBalance": 957196192,
+      "expectedBalance": 957196192,
+      "reconciled": true,
+      "floorHeld": true
+    },
+    {
+      "week": 2,
+      "platformBalance": 957196192,
+      "expectedBalance": 957196192,
+      "reconciled": true,
+      "floorHeld": true
+    },
+    {
+      "week": 3,
+      "platformBalance": 954996192,
+      "expectedBalance": 954996192,
+      "reconciled": true,
+      "floorHeld": true
+    },
+    {
+      "week": 4,
+      "platformBalance": 953071954,
+      "expectedBalance": 953071954,
+      "reconciled": true,
+      "floorHeld": true
+    },
+    {
+      "week": 5,
+      "platformBalance": 950624543,
+      "expectedBalance": 950624543,
+      "reconciled": true,
+      "floorHeld": true
+    },
+    {
+      "week": 6,
+      "platformBalance": 950903398,
+      "expectedBalance": 950903398,
+      "reconciled": true,
+      "floorHeld": true
+    },
+    {
+      "week": 7,
+      "platformBalance": 951173743,
+      "expectedBalance": 951173743,
+      "reconciled": true,
+      "floorHeld": true
+    },
+    {
+      "week": 8,
+      "platformBalance": 951396846,
+      "expectedBalance": 951396846,
+      "reconciled": true,
+      "floorHeld": true
+    },
+    {
+      "week": 9,
+      "platformBalance": 951621877,
+      "expectedBalance": 951621877,
+      "reconciled": true,
+      "floorHeld": true
+    },
+    {
+      "week": 10,
+      "platformBalance": 951845716,
+      "expectedBalance": 951845716,
+      "reconciled": true,
+      "floorHeld": true
+    }
+  ],
+  "movements": [
+    {
+      "kind": "disburse",
+      "idempotencyKey": "disburse:req:req_1",
+      "borrowerId": "kopi",
+      "amount": 2200000,
+      "transferId": "tr_S6pQiF56Mpe4ycaCgUXZbw",
+      "status": "settled",
+      "attempts": 1,
+      "week": 3,
+      "confirmedBy": "poll",
+      "requestId": "711073d8-07c8-4aca-a549-e2453ae56817"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_1:w4",
+      "borrowerId": "kopi",
+      "amount": 75762,
+      "transferId": "ch_9HYo9yPbOp6bBHStZiZV1A",
+      "status": "settled",
+      "attempts": 1,
+      "week": 4,
+      "confirmedBy": "poll",
+      "requestId": "b8e10605-0f8c-4646-ab1a-cdaf3b039852"
+    },
+    {
+      "kind": "disburse",
+      "idempotencyKey": "disburse:req:req_2",
+      "borrowerId": "ledgerly",
+      "amount": 2000000,
+      "transferId": "tr_DcLuErFgMLagN-_Z6juEFw",
+      "status": "settled",
+      "attempts": 1,
+      "week": 4,
+      "confirmedBy": "poll",
+      "requestId": "040df347-d3fd-4243-acdc-8ebd5b5737d1"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_1:w5",
+      "borrowerId": "kopi",
+      "amount": 71319,
+      "transferId": "ch_mpC6vTvKMeWlkigBbpVnKQ",
+      "status": "settled",
+      "attempts": 1,
+      "week": 5,
+      "confirmedBy": "poll",
+      "requestId": "d9474be8-6ded-4091-a3c5-de3dfa553aea"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_2:w5",
+      "borrowerId": "ledgerly",
+      "amount": 81270,
+      "transferId": "ch_OuEaSCwqMAChbQweaBiKqw",
+      "status": "settled",
+      "attempts": 1,
+      "week": 5,
+      "confirmedBy": "poll",
+      "requestId": "312f6e36-6a17-488a-ae54-4a5823f7c5cd"
+    },
+    {
+      "kind": "disburse",
+      "idempotencyKey": "disburse:req:req_3",
+      "borrowerId": "nimbus",
+      "amount": 2600000,
+      "transferId": "tr_d06tozLhOEWmPUnoIgRm5Q",
+      "status": "settled",
+      "attempts": 1,
+      "week": 5,
+      "confirmedBy": "poll",
+      "requestId": "de95006b-aab4-48a8-a86c-1a43248fbac9"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_1:w6",
+      "borrowerId": "kopi",
+      "amount": 68169,
+      "transferId": "ch_VTzY-sSKPpOMjpoQgZb_fA",
+      "status": "settled",
+      "attempts": 1,
+      "week": 6,
+      "confirmedBy": "poll",
+      "requestId": "6350c25e-cff0-4c03-a127-ab7858c3264d"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_2:w6",
+      "borrowerId": "ledgerly",
+      "amount": 34657,
+      "transferId": "ch_xA77nruFPt-ZyxVcVhiEsg",
+      "status": "settled",
+      "attempts": 1,
+      "week": 6,
+      "confirmedBy": "poll",
+      "requestId": "f6780eb3-53e8-4d23-a33e-b52d321ec782"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_3:w6",
+      "borrowerId": "nimbus",
+      "amount": 176029,
+      "transferId": "ch_zx4x4TpWMAy6Lia-yqYRrQ",
+      "status": "settled",
+      "attempts": 1,
+      "week": 6,
+      "confirmedBy": "poll",
+      "requestId": "efefbb6b-c3e2-442e-a7f3-1d78be47107a"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "catchup:rcv_4:w7",
+      "borrowerId": "ledgerly",
+      "amount": 51986,
+      "transferId": "ch_4XS1FPxFMLeo7EsEAYO8bw",
+      "status": "settled",
+      "attempts": 1,
+      "week": 7,
+      "confirmedBy": "poll",
+      "requestId": "cd6d640e-4dbd-4252-afa1-64f1058ba3f9"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_1:w7",
+      "borrowerId": "kopi",
+      "amount": 63114,
+      "transferId": "ch_G8pm0HHcMLuamMjQ736phA",
+      "status": "settled",
+      "attempts": 1,
+      "week": 7,
+      "confirmedBy": "poll",
+      "requestId": "d6bf919d-6bc9-4542-a900-f0222ff7bcd2"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_2:w7",
+      "borrowerId": "ledgerly",
+      "amount": 94421,
+      "transferId": "ch_TH6JvV33O8q88XOcja2lgw",
+      "status": "settled",
+      "attempts": 1,
+      "week": 7,
+      "confirmedBy": "poll",
+      "requestId": "81581af2-a8b0-497f-ac6d-44be5c6d9cb1"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_3:w7",
+      "borrowerId": "nimbus",
+      "amount": 60824,
+      "transferId": "ch_S_x2bWLyP2mUnQzaPB3kKw",
+      "status": "settled",
+      "attempts": 1,
+      "week": 7,
+      "confirmedBy": "poll",
+      "requestId": "0de609b5-1f54-46dc-a9e3-16cd8c41b7fd"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_1:w8",
+      "borrowerId": "kopi",
+      "amount": 61526,
+      "transferId": "ch_eufTfE_iOyeLb0AOUQMpZg",
+      "status": "settled",
+      "attempts": 1,
+      "week": 8,
+      "confirmedBy": "poll",
+      "requestId": "53b74885-d1ad-4fa8-aca5-e6b8ae4f53ad"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_2:w8",
+      "borrowerId": "ledgerly",
+      "amount": 96820,
+      "transferId": "ch_Qk44l0WtMdqnNJ_iGd3tPg",
+      "status": "settled",
+      "attempts": 1,
+      "week": 8,
+      "confirmedBy": "poll",
+      "requestId": "fe627338-c353-4dd6-a069-f9904f5dfcc4"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_3:w8",
+      "borrowerId": "nimbus",
+      "amount": 64757,
+      "transferId": "ch_GtFASDGXNmS0DVJXe7Pi1w",
+      "status": "settled",
+      "attempts": 1,
+      "week": 8,
+      "confirmedBy": "poll",
+      "requestId": "d3d7a200-3e72-4d59-a49e-31a946a7ade8"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_1:w9",
+      "borrowerId": "kopi",
+      "amount": 58923,
+      "transferId": "ch_hEZ4NVvvMdajvMYEIpzYiQ",
+      "status": "settled",
+      "attempts": 1,
+      "week": 9,
+      "confirmedBy": "poll",
+      "requestId": "838408a3-69e8-4965-a7d8-3eee9b53de98"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_2:w9",
+      "borrowerId": "ledgerly",
+      "amount": 105638,
+      "transferId": "ch_yq-3Q57tMYCS4z-BIz4BVg",
+      "status": "settled",
+      "attempts": 1,
+      "week": 9,
+      "confirmedBy": "poll",
+      "requestId": "b3bf435f-318a-42d1-a4c7-218a401c5ebd"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_3:w9",
+      "borrowerId": "nimbus",
+      "amount": 60470,
+      "transferId": "ch_yYXutR8ZPlOf90ERtvA6og",
+      "status": "settled",
+      "attempts": 1,
+      "week": 9,
+      "confirmedBy": "poll",
+      "requestId": "d99a3afb-d6d4-413b-ae28-1e18fc85d931"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_1:w10",
+      "borrowerId": "kopi",
+      "amount": 52692,
+      "transferId": "ch_52NYdsXTNyaA2428-rCZfw",
+      "status": "settled",
+      "attempts": 1,
+      "week": 10,
+      "confirmedBy": "poll",
+      "requestId": "c70c89a3-7939-4acc-ac56-e6257e00de56"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_2:w10",
+      "borrowerId": "ledgerly",
+      "amount": 110971,
+      "transferId": "ch_TmereWi3NKKdVKzJnKdI5A",
+      "status": "settled",
+      "attempts": 1,
+      "week": 10,
+      "confirmedBy": "poll",
+      "requestId": "97c6623e-9bf9-46e2-ae0c-c245a240b109"
+    },
+    {
+      "kind": "collect",
+      "idempotencyKey": "collect:adv_3:w10",
+      "borrowerId": "nimbus",
+      "amount": 60176,
+      "transferId": "ch_M2flq_zgNCapqBYSVJxESA",
+      "status": "settled",
+      "attempts": 1,
+      "week": 10,
+      "confirmedBy": "poll",
+      "requestId": "a164a309-566d-4aeb-ab68-6d46e80661c9"
+    }
+  ],
+  "receivables": [
+    {
+      "id": "rcv_4",
+      "week": 6,
+      "advanceId": "adv_2",
+      "borrowerId": "ledgerly",
+      "amount": 51986,
+      "reason": "late-payment",
+      "collected": 51986,
+      "settledWeek": 7
+    }
+  ],
+  "decisions": [
+    {
+      "week": 3,
+      "type": "advance-request",
+      "borrowerId": "kopi",
+      "inputs": {
+        "request": {
+          "id": "req_1",
+          "borrowerId": "kopi",
+          "amount": 2200000,
+          "week": 3
+        },
+        "platformBalance": 957196192,
+        "reserveFloor": 950196192,
+        "signals": {
+          "avgWeeklyRevenue": 833801,
+          "trendPct": 0,
+          "volatility": 0.029953429937807734,
+          "lastWeekChangePct": -0.04612252537580278,
+          "weeksObserved": 3,
+          "refundRate": 0.02,
+          "tier": "healthy",
+          "reasons": [
+            "stable revenue, trend 0%"
+          ]
+        },
+        "commitments": [
+          {
+            "id": "cmt_pipeline_kopi",
+            "borrowerId": "kopi",
+            "amount": 428351,
+            "week": 6,
+            "reason": "approved top-up"
+          }
+        ]
+      },
+      "options": [
+        {
+          "kind": "full",
+          "amount": 2200000,
+          "executeWeek": 3,
+          "reallocations": [],
+          "projectedBalanceAfter": 954196192,
+          "breachesFloor": false,
+          "feasible": true,
+          "expectedFee": 176000,
+          "expectedLoss": 44000,
+          "frictionCost": 0,
+          "score": 132000,
+          "rationale": [
+            "borrower tier healthy: stable revenue, trend 0%",
+            "capacity $25,352, free capital $62,000",
+            "fund $22,000 now"
+          ]
+        },
+        {
+          "kind": "partial",
+          "amount": 2190000,
+          "executeWeek": 3,
+          "reallocations": [],
+          "projectedBalanceAfter": 954206192,
+          "breachesFloor": false,
+          "feasible": true,
+          "expectedFee": 175200,
+          "expectedLoss": 43800,
+          "frictionCost": 0,
+          "score": 131400,
+          "rationale": [
+            "borrower tier healthy: stable revenue, trend 0%",
+            "capacity $25,352, free capital $62,000",
+            "fund $21,900 now, the most free capital allows"
+          ]
+        },
+        {
+          "kind": "decline",
+          "amount": 0,
+          "executeWeek": 3,
+          "reallocations": [],
+          "projectedBalanceAfter": 956396192,
+          "breachesFloor": false,
+          "feasible": true,
+          "expectedFee": 0,
+          "expectedLoss": 0,
+          "frictionCost": 0,
+          "score": 0,
+          "rationale": [
+            "borrower tier healthy: stable revenue, trend 0%",
+            "capacity $25,352, free capital $62,000",
+            "decline this request"
+          ]
+        }
+      ],
+      "chosen": "full",
+      "decidedBy": "claude",
+      "memo": "Kopi Roasters requests $22,000 in week 3. We recommend funding the full amount now, which is the top-scored policy option ($1,320 score: $1,760 fee less $440 expected loss, no friction). The borrower is rated healthy, with average weekly revenue of $8,338, a flat 0.0% trend, very low volatility (0.03), and no outstanding balance. The advance is roughly 2.6 weeks of revenue, which is a manageable repayment burden. Platform cash stays above the reserve floor at $9,541,962, a $40,000 cushion with $8,000 already committed, and the rest of the portfolio is healthy with no amounts owed, so there is no signal-based reason to prefer the slightly smaller partial option.",
+      "receipts": [
+        "tr_S6pQiF56Mpe4ycaCgUXZbw"
+      ],
+      "approval": {
+        "required": true,
+        "approved": true,
+        "by": "demo-operator"
+      }
+    },
+    {
+      "week": 4,
+      "type": "advance-request",
+      "borrowerId": "ledgerly",
+      "inputs": {
+        "request": {
+          "id": "req_2",
+          "borrowerId": "ledgerly",
+          "amount": 2000000,
+          "week": 4
+        },
+        "platformBalance": 955071954,
+        "reserveFloor": 950196192,
+        "signals": {
+          "avgWeeklyRevenue": 717050,
+          "trendPct": 0,
+          "volatility": 0.07127618418430946,
+          "lastWeekChangePct": 0.11869996327579875,
+          "weeksObserved": 4,
+          "refundRate": 0.01,
+          "tier": "healthy",
+          "reasons": [
+            "stable revenue, trend 0%"
+          ]
+        },
+        "commitments": [
+          {
+            "id": "cmt_pipeline_kopi",
+            "borrowerId": "kopi",
+            "amount": 428351,
+            "week": 6,
+            "reason": "approved top-up"
+          }
+        ]
+      },
+      "options": [
+        {
+          "kind": "full",
+          "amount": 2000000,
+          "executeWeek": 4,
+          "reallocations": [],
+          "projectedBalanceAfter": 952271954,
+          "breachesFloor": false,
+          "feasible": true,
+          "expectedFee": 160000,
+          "expectedLoss": 40000,
+          "frictionCost": 0,
+          "score": 120000,
+          "rationale": [
+            "borrower tier healthy: stable revenue, trend 0%",
+            "capacity $28,682, free capital $40,758",
+            "fund $20,000 now"
+          ]
+        },
+        {
+          "kind": "partial",
+          "amount": 1990000,
+          "executeWeek": 4,
+          "reallocations": [],
+          "projectedBalanceAfter": 952281954,
+          "breachesFloor": false,
+          "feasible": true,
+          "expectedFee": 159200,
+          "expectedLoss": 39800,
+          "frictionCost": 0,
+          "score": 119400,
+          "rationale": [
+            "borrower tier healthy: stable revenue, trend 0%",
+            "capacity $28,682, free capital $40,758",
+            "fund $19,900 now, the most free capital allows"
+          ]
+        },
+        {
+          "kind": "delay",
+          "amount": 2000000,
+          "executeWeek": 5,
+          "reallocations": [],
+          "projectedBalanceAfter": 952336830,
+          "breachesFloor": false,
+          "feasible": true,
+          "expectedFee": 160000,
+          "expectedLoss": 40000,
+          "frictionCost": 30000,
+          "score": 90000,
+          "rationale": [
+            "borrower tier healthy: stable revenue, trend 0%",
+            "capacity $28,682, free capital $40,758",
+            "wait 1 week(s) for projected collections of $649/wk"
+          ]
+        },
+        {
+          "kind": "decline",
+          "amount": 0,
+          "executeWeek": 4,
+          "reallocations": [],
+          "projectedBalanceAfter": 954271954,
+          "breachesFloor": false,
+          "feasible": true,
+          "expectedFee": 0,
+          "expectedLoss": 0,
+          "frictionCost": 0,
+          "score": 0,
+          "rationale": [
+            "borrower tier healthy: stable revenue, trend 0%",
+            "capacity $28,682, free capital $40,758",
+            "decline this request"
+          ]
+        }
+      ],
+      "chosen": "full",
+      "decidedBy": "claude",
+      "memo": "Recommend funding Ledgerly SaaS's full $20,000 request in week 4, the highest-scored policy option at $1,200 (fee $1,600 less $400 expected loss, no friction). The borrower is rated healthy with stable revenue averaging $7,171/week, a flat trend, low volatility (0.07), and no outstanding balance. That makes the advance roughly 2.8 weeks of revenue, a manageable repayment burden. Post-funding platform cash of $9,522,720 stays about $20,758 above the $9,501,962 reserve floor. The partial and delay options lower or postpone a modest exposure without a meaningful risk benefit, and the borrower's signals give no reason to accept a lower score.",
+      "receipts": [
+        "tr_DcLuErFgMLagN-_Z6juEFw"
+      ],
+      "approval": {
+        "required": false,
+        "approved": true,
+        "by": "policy"
+      }
+    },
+    {
+      "week": 5,
+      "type": "advance-request",
+      "borrowerId": "nimbus",
+      "inputs": {
+        "request": {
+          "id": "req_3",
+          "borrowerId": "nimbus",
+          "amount": 2600000,
+          "week": 5
+        },
+        "platformBalance": 953224543,
+        "reserveFloor": 950196192,
+        "signals": {
+          "avgWeeklyRevenue": 1382468,
+          "trendPct": 0.009427747839051004,
+          "volatility": 0.011455673069770252,
+          "lastWeekChangePct": -0.010336907413781533,
+          "weeksObserved": 5,
+          "refundRate": 0.03,
+          "tier": "healthy",
+          "reasons": [
+            "stable revenue, trend 1%"
+          ]
+        },
+        "commitments": [
+          {
+            "id": "cmt_pipeline_kopi",
+            "borrowerId": "kopi",
+            "amount": 428351,
+            "week": 6,
+            "reason": "approved top-up"
+          }
+        ]
+      },
+      "options": [
+        {
+          "kind": "full",
+          "amount": 2600000,
+          "executeWeek": 5,
+          "reallocations": [],
+          "projectedBalanceAfter": 949824543,
+          "breachesFloor": true,
+          "feasible": false,
+          "expectedFee": 208000,
+          "expectedLoss": 52000,
+          "frictionCost": 0,
+          "score": 156000,
+          "rationale": [
+            "borrower tier healthy: stable revenue, trend 1%",
+            "capacity $35,000, free capital $22,284",
+            "fund $26,000 now"
+          ]
+        },
+        {
+          "kind": "partial",
+          "amount": 2220000,
+          "executeWeek": 5,
+          "reallocations": [],
+          "projectedBalanceAfter": 950204543,
+          "breachesFloor": false,
+          "feasible": true,
+          "expectedFee": 177600,
+          "expectedLoss": 44400,
+          "frictionCost": 0,
+          "score": 133200,
+          "rationale": [
+            "borrower tier healthy: stable revenue, trend 1%",
+            "capacity $35,000, free capital $22,284",
+            "fund $22,200 now, the most free capital allows"
+          ]
+        },
+        {
+          "kind": "delay",
+          "amount": 2600000,
+          "executeWeek": 9,
+          "reallocations": [],
+          "projectedBalanceAfter": 950314879,
+          "breachesFloor": false,
+          "feasible": true,
+          "expectedFee": 208000,
+          "expectedLoss": 52000,
+          "frictionCost": 156000,
+          "score": 0,
+          "rationale": [
+            "borrower tier healthy: stable revenue, trend 1%",
+            "capacity $35,000, free capital $22,284",
+            "wait 4 week(s) for projected collections of $1,226/wk"
+          ]
+        },
+        {
+          "kind": "reallocate",
+          "amount": 2600000,
+          "executeWeek": 5,
+          "reallocations": [
+            {
+              "commitmentId": "cmt_pipeline_kopi",
+              "fromBorrowerId": "kopi",
+              "reduceBy": 371649
+            }
+          ],
+          "projectedBalanceAfter": 950196192,
+          "breachesFloor": false,
+          "feasible": true,
+          "expectedFee": 208000,
+          "expectedLoss": 52000,
+          "frictionCost": 3716,
+          "score": 152284,
+          "rationale": [
+            "borrower tier healthy: stable revenue, trend 1%",
+            "capacity $35,000, free capital $22,284",
+            "fund $26,000 now by moving $3,716 from Kopi Roasters' pending advance"
+          ]
+        },
+        {
+          "kind": "decline",
+          "amount": 0,
+          "executeWeek": 5,
+          "reallocations": [],
+          "projectedBalanceAfter": 952424543,
+          "breachesFloor": false,
+          "feasible": true,
+          "expectedFee": 0,
+          "expectedLoss": 0,
+          "frictionCost": 0,
+          "score": 0,
+          "rationale": [
+            "borrower tier healthy: stable revenue, trend 1%",
+            "capacity $35,000, free capital $22,284",
+            "decline this request"
+          ]
+        }
+      ],
+      "chosen": "reallocate",
+      "decidedBy": "claude",
+      "memo": "Nimbus Apparel is a healthy-tier borrower with no outstanding balance, averaging $13,825 in weekly revenue with very low volatility (0.01) and a modest positive trend (0.9%), so the full $26,000 request is well supported. The top-scored reallocate option ($1,523) funds the full amount now by moving $3,716 from Kopi Roasters' pending advance. Kopi is on watch and already owes $22,289, so trimming its pending exposure in favor of a stronger credit improves portfolio quality rather than just shifting it. The partial option ($1,332) underfunds a strong borrower, and the delay option scores zero because of friction. Note that reallocation leaves platform cash exactly at the $9,501,962 reserve floor with no buffer, so the committee should watch collections closely in the coming weeks.",
+      "receipts": [
+        "tr_d06tozLhOEWmPUnoIgRm5Q"
+      ],
+      "approval": {
+        "required": true,
+        "approved": true,
+        "by": "demo-operator"
+      }
+    },
+    {
+      "week": 6,
+      "type": "commitment",
+      "borrowerId": "kopi",
+      "inputs": {
+        "request": {
+          "id": "cmt_pipeline_kopi",
+          "borrowerId": "kopi",
+          "amount": 428351,
+          "week": 6
+        },
+        "platformBalance": 950903398,
+        "reserveFloor": 950196192,
+        "signals": {
+          "avgWeeklyRevenue": 717503,
+          "trendPct": -0.13947966821832863,
+          "volatility": 0.043411398242147285,
+          "lastWeekChangePct": -0.10248128002415542,
+          "weeksObserved": 6,
+          "refundRate": 0.02,
+          "tier": "watch",
+          "reasons": [
+            "revenue softening -14% over 3 weeks"
+          ]
+        },
+        "commitments": [],
+        "commitment": {
+          "id": "cmt_pipeline_kopi",
+          "borrowerId": "kopi",
+          "amount": 428351,
+          "week": 6,
+          "reason": "approved top-up"
+        }
+      },
+      "options": [
+        {
+          "kind": "decline",
+          "amount": 0,
+          "executeWeek": 6,
+          "reallocations": [],
+          "projectedBalanceAfter": 950903398,
+          "breachesFloor": false,
+          "feasible": true,
+          "expectedFee": 0,
+          "expectedLoss": 0,
+          "frictionCost": 0,
+          "score": 0,
+          "rationale": [
+            "borrower tier watch: revenue softening -14% over 3 weeks",
+            "capacity $0, free capital $7,072",
+            "capacity below minimum advance $2,000"
+          ]
+        }
+      ],
+      "chosen": "decline",
+      "decidedBy": "claude",
+      "memo": "Re-checked Kopi Roasters' pending $4,284 advance (approved top-up) before paying out. Kopi Roasters' $4,284 request is declined; it is the only policy-approved option, since available capacity above the reserve floor (about $7,072) falls below the $2,000 minimum advance threshold once the platform's buffer requirements are applied. The borrower's own signals would also counsel caution: it is on watch tier, owes $21,608 (roughly three weeks of revenue), and weekly revenue has softened about 14% over three weeks, though low volatility (0.04) suggests a steady decline rather than erratic swings. Declining preserves platform cash at $9,509,034 with no fee, expected loss, or friction. We recommend revisiting the request once platform liquidity recovers and Kopi's revenue trend stabilizes.",
+      "receipts": [],
+      "approval": {
+        "required": false,
+        "approved": true,
+        "by": "policy"
+      }
+    },
+    {
+      "week": 7,
+      "type": "health-review",
+      "borrowerId": "nimbus",
+      "inputs": {
+        "previousTier": "healthy",
+        "signals": {
+          "avgWeeklyRevenue": 1115090,
+          "trendPct": -0.19535203573936127,
+          "volatility": 0.38726552273570014,
+          "lastWeekChangePct": -0.6416398516047325,
+          "weeksObserved": 7,
+          "refundRate": 0.04,
+          "tier": "stressed",
+          "reasons": [
+            "last week revenue -64% vs recent average"
+          ]
+        },
+        "cancelled": []
+      },
+      "decidedBy": "rules",
+      "memo": "Nimbus Apparel moved healthy → stressed (last week revenue -64% vs recent average). New advances frozen. Repayments continue at 12% of revenue, so they shrink with revenue instead of forcing a default; $25,711 outstanding.",
+      "receipts": []
+    },
+    {
+      "week": 8,
+      "type": "advance-request",
+      "borrowerId": "nimbus",
+      "inputs": {
+        "request": {
+          "id": "req_4",
+          "borrowerId": "nimbus",
+          "amount": 1000000,
+          "week": 8
+        },
+        "platformBalance": 951396846,
+        "reserveFloor": 950196192,
+        "signals": {
+          "avgWeeklyRevenue": 837810,
+          "trendPct": -0.3939755099875705,
+          "volatility": 0.5311990372053055,
+          "lastWeekChangePct": -0.5160525159404173,
+          "weeksObserved": 8,
+          "refundRate": 0.04,
+          "tier": "stressed",
+          "reasons": [
+            "last week revenue -52% vs recent average",
+            "3-week revenue trend -39%"
+          ]
+        },
+        "commitments": []
+      },
+      "options": [
+        {
+          "kind": "decline",
+          "amount": 0,
+          "executeWeek": 8,
+          "reallocations": [],
+          "projectedBalanceAfter": 951396846,
+          "breachesFloor": false,
+          "feasible": true,
+          "expectedFee": 0,
+          "expectedLoss": 0,
+          "frictionCost": 0,
+          "score": 0,
+          "rationale": [
+            "borrower tier stressed: last week revenue -52% vs recent average; 3-week revenue trend -39%",
+            "capacity $0, free capital $12,007",
+            "capacity below minimum advance $2,000"
+          ]
+        }
+      ],
+      "chosen": "decline",
+      "decidedBy": "claude",
+      "memo": "Nimbus Apparel's $10,000 request is declined; it is the only policy-approved option because available capacity above the reserve floor (about $12,006) falls short of the minimum advance threshold once risk adjustments are applied. The borrower's signals also argue against new exposure. It is in the stressed tier, average weekly revenue is $8,378 and down 39.4%, volatility is high at 0.53, and last week's revenue was 52% below its recent average. Nimbus already owes $25,064, which is about three weeks of its current average revenue, so adding $10,000 would raise expected loss materially. We will reassess if revenue stabilizes and the existing balance is paid down.",
+      "receipts": [],
+      "approval": {
+        "required": false,
+        "approved": true,
+        "by": "policy"
+      }
+    }
+  ],
+  "advances": [
+    {
+      "id": "adv_1",
+      "borrowerId": "kopi",
+      "principal": 2200000,
+      "fee": 176000,
+      "outstanding": 1924495,
+      "disbursedWeek": 3
+    },
+    {
+      "id": "adv_2",
+      "borrowerId": "ledgerly",
+      "principal": 2000000,
+      "fee": 160000,
+      "outstanding": 1584237,
+      "disbursedWeek": 4
+    },
+    {
+      "id": "adv_3",
+      "borrowerId": "nimbus",
+      "principal": 2600000,
+      "fee": 208000,
+      "outstanding": 2385744,
+      "disbursedWeek": 5
+    }
+  ],
+  "events": [
+    {
+      "week": 3,
+      "level": "info",
+      "text": "Kopi Roasters requested $22,000 → full $22,000 (week 3) [claude]"
+    },
+    {
+      "week": 4,
+      "level": "info",
+      "text": "Ledgerly SaaS requested $20,000 → full $20,000 (week 4) [claude]"
+    },
+    {
+      "week": 5,
+      "level": "info",
+      "text": "Reallocated $3,716 from Kopi Roasters' pending advance (cmt_pipeline_kopi)"
+    },
+    {
+      "week": 5,
+      "level": "info",
+      "text": "Nimbus Apparel requested $26,000 → reallocate $26,000 (week 5) [claude]"
+    },
+    {
+      "week": 6,
+      "level": "warn",
+      "text": "Ledgerly SaaS: $5,199 of this week's $8,664 sales has not settled. Collected on what arrived; $520 share recorded as rcv_4. Sales are on trend, so this is late money, not a health signal."
+    },
+    {
+      "week": 6,
+      "level": "warn",
+      "text": "Pending advance for Kopi Roasters ($4,284) → decline [claude]"
+    },
+    {
+      "week": 7,
+      "level": "info",
+      "text": "Ledgerly SaaS: collected $520 catch-up on rcv_4 (late customer payments from week 6 settled); receivable cleared"
+    },
+    {
+      "week": 7,
+      "level": "warn",
+      "text": "Nimbus Apparel moved healthy → stressed (last week revenue -64% vs recent average). New advances frozen. Repayments continue at 12% of revenue, so they shrink with revenue instead of forcing a default; $25,711 outstanding."
+    },
+    {
+      "week": 8,
+      "level": "info",
+      "text": "Nimbus Apparel requested $10,000 → decline [claude]"
+    }
+  ],
+  "floorHeldEveryWeek": true,
+  "reconciledEveryWeek": true,
+  "balanceReport": {
+    "requestedAt": "2026-11-16T13:40:49.432Z",
+    "id": "7860593a-97f8-40f2-b12e-b1133f93d3b3",
+    "status": "COMPLETED"
+  },
+  "portfolio": {
+    "at": "2026-11-16T13:40:49.432Z",
+    "reportId": "7860593a-97f8-40f2-b12e-b1133f93d3b3",
+    "reportLags": true,
+    "rows": [
+      {
+        "label": "Platform",
+        "accountId": "platform",
+        "currency": "USD",
+        "expected": 951845716,
+        "live": 951845716,
+        "reportStale": false,
+        "match": true
+      },
+      {
+        "label": "Kopi Roasters",
+        "accountId": "acct_7S_5YI8hPQe5aQ2q_G9qBQ",
+        "currency": "USD",
+        "expected": 78884811,
+        "live": 78884811,
+        "report": 70119832,
+        "reportAsOf": 0,
+        "reportLastUpdate": "2026-11-15 12:46:05.450492 UTC",
+        "reportStale": false,
+        "match": true
+      },
+      {
+        "label": "Nimbus Apparel",
+        "accountId": "acct_FgwSa3ueNfSo5T2x3GDpQQ",
+        "currency": "USD",
+        "expected": 113247738,
+        "live": 113247738,
+        "report": 100664656,
+        "reportAsOf": 0,
+        "reportLastUpdate": "2026-11-15 12:46:11.202216 UTC",
+        "reportStale": false,
+        "match": true
+      },
+      {
+        "label": "Ledgerly SaaS",
+        "accountId": "acct_8iWqHGHoO2-WUR1NQeu2bQ",
+        "currency": "USD",
+        "expected": 89871309,
+        "live": 89871309,
+        "report": 79885608,
+        "reportAsOf": 0,
+        "reportLastUpdate": "2026-11-15 12:46:08.334591 UTC",
+        "reportStale": false,
+        "match": true
+      }
+    ],
+    "allMatch": true
+  },
+  "approvals": "auto",
+  "revenueChecks": [
+    {
+      "week": 1,
+      "borrowerId": "kopi",
+      "currency": "USD",
+      "expected": 826153,
+      "confirmed": 826153,
+      "depositIds": [
+        "bc4ab2c6-d4be-4825-a3f6-52471672f28c"
+      ],
+      "match": true
+    },
+    {
+      "week": 1,
+      "borrowerId": "nimbus",
+      "currency": "USD",
+      "expected": 1357599,
+      "confirmed": 1357599,
+      "depositIds": [
+        "66fea4e7-dbb6-4ee3-8744-cb699fd80d08"
+      ],
+      "match": true
+    },
+    {
+      "week": 1,
+      "borrowerId": "ledgerly",
+      "currency": "USD",
+      "expected": 652655,
+      "confirmed": 652655,
+      "depositIds": [
+        "bff0ee6f-8a40-4261-ad12-12f009b956cf"
+      ],
+      "match": true
+    },
+    {
+      "week": 2,
+      "borrowerId": "kopi",
+      "currency": "USD",
+      "expected": 867488,
+      "confirmed": 867488,
+      "depositIds": [
+        "7aa3fc73-efdf-4c4e-9a39-ad7e85a0e3be"
+      ],
+      "match": true
+    },
+    {
+      "week": 2,
+      "borrowerId": "nimbus",
+      "currency": "USD",
+      "expected": 1381514,
+      "confirmed": 1381514,
+      "depositIds": [
+        "3be09104-520a-466f-ab3b-a86b28b3b53b"
+      ],
+      "match": true
+    },
+    {
+      "week": 2,
+      "borrowerId": "ledgerly",
+      "currency": "USD",
+      "expected": 645476,
+      "confirmed": 645476,
+      "depositIds": [
+        "39ca68ee-e141-4ba6-ae1f-f00f99848c4d"
+      ],
+      "match": true
+    },
+    {
+      "week": 3,
+      "borrowerId": "kopi",
+      "currency": "USD",
+      "expected": 807763,
+      "confirmed": 807763,
+      "depositIds": [
+        "d70f0a38-c2bd-4330-a9e6-8dea2def9ca1"
+      ],
+      "match": true
+    },
+    {
+      "week": 3,
+      "borrowerId": "nimbus",
+      "currency": "USD",
+      "expected": 1371055,
+      "confirmed": 1371055,
+      "depositIds": [
+        "3f19058b-990e-41e2-b84c-83e5c8553510"
+      ],
+      "match": true
+    },
+    {
+      "week": 3,
+      "borrowerId": "ledgerly",
+      "currency": "USD",
+      "expected": 744119,
+      "confirmed": 744119,
+      "depositIds": [
+        "5c877809-785a-403f-8faa-569006aba212"
+      ],
+      "match": true
+    },
+    {
+      "week": 4,
+      "borrowerId": "kopi",
+      "currency": "USD",
+      "expected": 757621,
+      "confirmed": 757621,
+      "depositIds": [
+        "978e0be8-f2fd-451d-a8f6-7d5c266ade80"
+      ],
+      "match": true
+    },
+    {
+      "week": 4,
+      "borrowerId": "nimbus",
+      "currency": "USD",
+      "expected": 1404864,
+      "confirmed": 1404864,
+      "depositIds": [
+        "20c708b2-ea42-48be-b3e7-dd8dbd26b4cd"
+      ],
+      "match": true
+    },
+    {
+      "week": 4,
+      "borrowerId": "ledgerly",
+      "currency": "USD",
+      "expected": 761555,
+      "confirmed": 761555,
+      "depositIds": [
+        "0f278599-83d6-48a7-bc26-239116d4e9c4"
+      ],
+      "match": true
+    },
+    {
+      "week": 5,
+      "borrowerId": "kopi",
+      "currency": "USD",
+      "expected": 713198,
+      "confirmed": 713198,
+      "depositIds": [
+        "b4b0b2fa-d448-46ef-9017-b4062bf001e8"
+      ],
+      "match": true
+    },
+    {
+      "week": 5,
+      "borrowerId": "nimbus",
+      "currency": "USD",
+      "expected": 1371486,
+      "confirmed": 1371486,
+      "depositIds": [
+        "4cf80df8-8dc3-4fbe-b387-8fc88f5773a8"
+      ],
+      "match": true
+    },
+    {
+      "week": 5,
+      "borrowerId": "ledgerly",
+      "currency": "USD",
+      "expected": 812701,
+      "confirmed": 812701,
+      "depositIds": [
+        "97e37811-a44d-4f3a-ba41-532b010b6157"
+      ],
+      "match": true
+    },
+    {
+      "week": 6,
+      "borrowerId": "kopi",
+      "currency": "USD",
+      "expected": 681690,
+      "confirmed": 681690,
+      "depositIds": [
+        "8535bf25-b7fa-4bc3-9412-ef1652d85a81"
+      ],
+      "match": true
+    },
+    {
+      "week": 6,
+      "borrowerId": "nimbus",
+      "currency": "USD",
+      "expected": 1466912,
+      "confirmed": 1466912,
+      "depositIds": [
+        "d99ac775-c760-43cc-8141-f7ba9a09621d"
+      ],
+      "match": true
+    },
+    {
+      "week": 6,
+      "borrowerId": "ledgerly",
+      "currency": "USD",
+      "expected": 346576,
+      "confirmed": 346576,
+      "depositIds": [
+        "6addff49-5ed6-4515-acb7-805d3030ce53"
+      ],
+      "match": true
+    },
+    {
+      "week": 7,
+      "borrowerId": "kopi",
+      "currency": "USD",
+      "expected": 631147,
+      "confirmed": 631147,
+      "depositIds": [
+        "06e89735-f15f-47c1-8b47-5090a2f23237"
+      ],
+      "match": true
+    },
+    {
+      "week": 7,
+      "borrowerId": "nimbus",
+      "currency": "USD",
+      "expected": 506872,
+      "confirmed": 506872,
+      "depositIds": [
+        "3419da48-f6f6-44d0-9fbc-85ee80da82d8"
+      ],
+      "match": true
+    },
+    {
+      "week": 7,
+      "borrowerId": "ledgerly",
+      "currency": "USD",
+      "expected": 1464082,
+      "confirmed": 1464082,
+      "depositIds": [
+        "e09e7e87-880c-4b5a-bd63-7b6df5d0ee31"
+      ],
+      "match": true
+    },
+    {
+      "week": 8,
+      "borrowerId": "kopi",
+      "currency": "USD",
+      "expected": 615264,
+      "confirmed": 615264,
+      "depositIds": [
+        "cbd7968a-a5e7-4824-85b5-1e51c717ffb7"
+      ],
+      "match": true
+    },
+    {
+      "week": 8,
+      "borrowerId": "nimbus",
+      "currency": "USD",
+      "expected": 539645,
+      "confirmed": 539645,
+      "depositIds": [
+        "c37b35a2-e5cb-42d0-b63a-622817ca5dad"
+      ],
+      "match": true
+    },
+    {
+      "week": 8,
+      "borrowerId": "ledgerly",
+      "currency": "USD",
+      "expected": 968203,
+      "confirmed": 968203,
+      "depositIds": [
+        "cf3a0519-6bc5-4c4e-9ae9-ada6214c653c"
+      ],
+      "match": true
+    },
+    {
+      "week": 9,
+      "borrowerId": "kopi",
+      "currency": "USD",
+      "expected": 589238,
+      "confirmed": 589238,
+      "depositIds": [
+        "aa120844-088b-4be5-bddf-61aa97ef6c1a"
+      ],
+      "match": true
+    },
+    {
+      "week": 9,
+      "borrowerId": "nimbus",
+      "currency": "USD",
+      "expected": 503921,
+      "confirmed": 503921,
+      "depositIds": [
+        "f88ffb01-24af-4f7e-96d2-950a933551d2"
+      ],
+      "match": true
+    },
+    {
+      "week": 9,
+      "borrowerId": "ledgerly",
+      "currency": "USD",
+      "expected": 1056384,
+      "confirmed": 1056384,
+      "depositIds": [
+        "fa161795-9281-4826-ab33-f55426335c1b"
+      ],
+      "match": true
+    },
+    {
+      "week": 10,
+      "borrowerId": "kopi",
+      "currency": "USD",
+      "expected": 526922,
+      "confirmed": 526922,
+      "depositIds": [
+        "dcdda3a6-1e95-4c38-856c-3f87b6aea7a9"
+      ],
+      "match": true
+    },
+    {
+      "week": 10,
+      "borrowerId": "nimbus",
+      "currency": "USD",
+      "expected": 501470,
+      "confirmed": 501470,
+      "depositIds": [
+        "c607e373-08cc-4d55-ab8d-0a828e7e80a2"
+      ],
+      "match": true
+    },
+    {
+      "week": 10,
+      "borrowerId": "ledgerly",
+      "currency": "USD",
+      "expected": 1109713,
+      "confirmed": 1109713,
+      "depositIds": [
+        "03a82dcd-285d-447a-9179-601611bdad9e"
+      ],
+      "match": true
+    }
+  ],
+  "policy": {
+    "reserveFloor": 950196192,
+    "approvalThreshold": 2000000,
+    "maxBorrowerExposureBps": 3500,
+    "advanceMultipleWeeks": 4
+  }
+}
